@@ -48,6 +48,11 @@
         .key.backspace {
             width: 60px;
         }
+        #hiddenInput {
+            position: absolute;
+            opacity: 0;
+            pointer-events: none;
+        }
     </style>
 </head>
 <body>
@@ -55,6 +60,7 @@
     <div id="gameBoard"></div>
     <button id="submitGuess">Submit Guess</button>
     <div id="keyboard"></div>
+    <input type="text" id="hiddenInput" maxlength="1" />
     <script>
         let words = [];
         let secretWord;
@@ -120,19 +126,28 @@
 
             // Add event listener for keyboard inputs
             document.addEventListener('keydown', handleKeydown);
+
+            // Add event listener for hidden input
+            document.getElementById('hiddenInput').addEventListener('input', (event) => {
+                const letter = event.target.value.toLowerCase();
+                if (letter.match(/^[a-z]$/)) {
+                    insertLetter(letter);
+                }
+                event.target.value = ''; // Clear the input
+            });
         }
 
         function handleKeydown(event) {
             const key = event.key.toLowerCase();
-            if (key === 'backspace') {
+            if (key === 'enter') {
+                event.preventDefault(); // Prevent the default action
+                submitGuess();
+            } else if (key === 'backspace') {
                 event.preventDefault();
                 backspace();
             } else if (key >= 'a' && key <= 'z') {
                 event.preventDefault(); // Prevent default behavior for letter keys
                 insertLetter(key);
-            } else if (key === 'enter') {
-                event.preventDefault();
-                submitGuess();
             } else {
                 event.preventDefault(); // Prevent default behavior for other keys
             }
@@ -143,6 +158,7 @@
             currentCol = col;
             document.querySelectorAll('.tile').forEach(tile => tile.classList.remove('focused'));
             document.getElementById(`tile-${row}-${col}`).classList.add('focused');
+            document.getElementById('hiddenInput').focus(); // Focus the hidden input to open the keyboard
         }
 
         function insertLetter(letter) {
