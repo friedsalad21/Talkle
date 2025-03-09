@@ -128,10 +128,13 @@
                 event.preventDefault();
                 backspace();
             } else if (key >= 'a' && key <= 'z') {
+                event.preventDefault(); // Prevent default behavior for letter keys
                 insertLetter(key);
             } else if (key === 'enter') {
                 event.preventDefault();
                 submitGuess();
+            } else {
+                event.preventDefault(); // Prevent default behavior for other keys
             }
         }
 
