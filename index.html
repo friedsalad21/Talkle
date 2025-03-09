@@ -48,11 +48,6 @@
         .key.backspace {
             width: 60px;
         }
-        #hiddenInput {
-            position: absolute;
-            opacity: 0;
-            pointer-events: none;
-        }
         #submitGuess {
             margin-top: 20px; /* Adjust this value to move the button lower */
         }
@@ -63,7 +58,6 @@
     <div id="gameBoard"></div>
     <button id="submitGuess">Submit Guess</button>
     <div id="keyboard"></div>
-    <input type="text" id="hiddenInput" maxlength="1" />
     <script>
         let words = [];
         let secretWord;
@@ -129,15 +123,6 @@
 
             // Add event listener for keyboard inputs
             document.addEventListener('keydown', handleKeydown);
-
-            // Add event listener for hidden input
-            document.getElementById('hiddenInput').addEventListener('input', (event) => {
-                const letter = event.target.value.toLowerCase();
-                if (letter.match(/^[a-z]$/)) {
-                    insertLetter(letter);
-                }
-                event.target.value = ''; // Clear the input
-            });
         }
 
         function handleKeydown(event) {
@@ -161,7 +146,6 @@
             currentCol = col;
             document.querySelectorAll('.tile').forEach(tile => tile.classList.remove('focused'));
             document.getElementById(`tile-${row}-${col}`).classList.add('focused');
-            document.getElementById('hiddenInput').focus(); // Focus the hidden input to open the keyboard
         }
 
         function insertLetter(letter) {
