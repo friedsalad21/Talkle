@@ -116,6 +116,7 @@
             keyboard.appendChild(backspaceKey);
 
             document.getElementById('submitGuess').addEventListener('click', submitGuess);
+            focusTile(currentRow, currentCol); // Focus the first tile initially
         }
 
         function focusTile(row, col) {
@@ -129,7 +130,9 @@
             if (currentCol < 5) {
                 const tile = document.getElementById(`tile-${currentRow}-${currentCol}`);
                 tile.textContent = letter;
-                currentCol++;
+                if (currentCol < 4) {
+                    currentCol++;
+                }
                 focusTile(currentRow, currentCol);
             }
         }
@@ -182,6 +185,8 @@
                     if (confirm(`Game Over. The word was: ${secretWord}. Do you want to play again?`)) {
                         resetGame();
                     }
+                } else {
+                    focusTile(currentRow, currentCol); // Focus the first tile of the next row
                 }
             }
         }
@@ -212,6 +217,7 @@
                     tile.classList.remove('focused');
                 }
             }
+            focusTile(currentRow, currentCol); // Focus the first tile initially
         }
 
         fetchWords();
