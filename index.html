@@ -142,7 +142,7 @@
             if (key === 'enter') {
                 event.preventDefault(); // Prevent the default action
                 submitGuess();
-            } else if (key === 'backspace') {
+            } else if (key === 'backspace' || key === 'delete') {
                 event.preventDefault();
                 backspace();
             } else if (key >= 'a' && key <= 'z') {
