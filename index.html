@@ -117,6 +117,22 @@
 
             document.getElementById('submitGuess').addEventListener('click', submitGuess);
             focusTile(currentRow, currentCol); // Focus the first tile initially
+
+            // Add event listener for keyboard inputs
+            document.addEventListener('keydown', handleKeydown);
+        }
+
+        function handleKeydown(event) {
+            const key = event.key.toLowerCase();
+            if (key === 'backspace') {
+                event.preventDefault();
+                backspace();
+            } else if (key >= 'a' && key <= 'z') {
+                insertLetter(key);
+            } else if (key === 'enter') {
+                event.preventDefault();
+                submitGuess();
+            }
         }
 
         function focusTile(row, col) {
@@ -139,9 +155,9 @@
 
         function backspace() {
             if (currentCol > 0) {
+                currentCol--;
                 const tile = document.getElementById(`tile-${currentRow}-${currentCol}`);
                 tile.textContent = '';
-                currentCol--;
                 focusTile(currentRow, currentCol);
             } else if (currentCol === 0) {
                 const tile = document.getElementById(`tile-${currentRow}-${currentCol}`);
