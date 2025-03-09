@@ -139,10 +139,13 @@
 
         function backspace() {
             if (currentCol > 0) {
-                currentCol--;
                 const tile = document.getElementById(`tile-${currentRow}-${currentCol}`);
                 tile.textContent = '';
+                currentCol--;
                 focusTile(currentRow, currentCol);
+            } else if (currentCol === 0) {
+                const tile = document.getElementById(`tile-${currentRow}-${currentCol}`);
+                tile.textContent = '';
             }
         }
 
