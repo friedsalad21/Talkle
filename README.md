@@ -1,2 +1,4 @@
 # Talkle
-Talk game made for fun
+Talkle game made for fun.
+
+Played via browser
