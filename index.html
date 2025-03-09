@@ -106,6 +106,7 @@
                 row.split('').forEach(letter => {
                     const key = document.createElement('div');
                     key.className = 'key';
+                    key.id = `key-${letter}`;
                     key.textContent = letter;
                     key.addEventListener('click', () => insertLetter(letter));
                     keyboard.appendChild(key);
@@ -199,6 +200,8 @@
                 }
             }
 
+            updateKeyboardColors(guess, feedback);
+
             if (guess === secretWord) {
                 if (confirm("Congratulations! You've guessed the word! Do you want to play again?")) {
                     resetGame();
@@ -212,6 +215,19 @@
                     }
                 } else {
                     focusTile(currentRow, currentCol); // Focus the first tile of the next row
+                }
+            }
+        }
+
+        function updateKeyboardColors(guess, feedback) {
+            for (let i = 0; i < 5; i++) {
+                const key = document.getElementById(`key-${guess[i]}`);
+                if (feedback[i] === 'G') {
+                    key.style.backgroundColor = 'green';
+                } else if (feedback[i] === 'Y') {
+                    key.style.backgroundColor = 'yellow';
+                } else {
+                    key.style.backgroundColor = 'grey';
                 }
             }
         }
@@ -242,6 +258,9 @@
                     tile.classList.remove('focused');
                 }
             }
+            document.querySelectorAll('.key').forEach(key => {
+                key.style.backgroundColor = '';
+            });
             focusTile(currentRow, currentCol); // Focus the first tile initially
         }
 
