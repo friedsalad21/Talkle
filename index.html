@@ -26,6 +26,10 @@
             text-align: center;
             line-height: 50px;
             border: 1px solid #ccc;
+            cursor: pointer;
+        }
+        .tile.focused {
+            border: 2px solid blue;
         }
         #keyboard {
             margin-top: 20px;
@@ -84,6 +88,7 @@
                     const tile = document.createElement('div');
                     tile.className = 'tile';
                     tile.id = `tile-${i}-${j}`;
+                    tile.addEventListener('click', () => focusTile(i, j));
                     gameBoard.appendChild(tile);
                 }
             }
@@ -113,11 +118,19 @@
             document.getElementById('submitGuess').addEventListener('click', submitGuess);
         }
 
+        function focusTile(row, col) {
+            currentRow = row;
+            currentCol = col;
+            document.querySelectorAll('.tile').forEach(tile => tile.classList.remove('focused'));
+            document.getElementById(`tile-${row}-${col}`).classList.add('focused');
+        }
+
         function insertLetter(letter) {
             if (currentCol < 5) {
                 const tile = document.getElementById(`tile-${currentRow}-${currentCol}`);
                 tile.textContent = letter;
                 currentCol++;
+                focusTile(currentRow, currentCol);
             }
         }
 
@@ -126,6 +139,7 @@
                 currentCol--;
                 const tile = document.getElementById(`tile-${currentRow}-${currentCol}`);
                 tile.textContent = '';
+                focusTile(currentRow, currentCol);
             }
         }
 
@@ -195,6 +209,7 @@
                     const tile = document.getElementById(`tile-${i}-${j}`);
                     tile.textContent = '';
                     tile.style.backgroundColor = 'white';
+                    tile.classList.remove('focused');
                 }
             }
         }
