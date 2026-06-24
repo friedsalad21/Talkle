@@ -5,6 +5,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Talkle</title>
     <style>
+        :root{
+            --tile-size:50px;
+            --gap:6px;
+            --bg:#ffffff;
+            --text:#111;
+            --correct:#6aaa64;
+            --present:#c9b458;
+            --absent:#787c7e;
+        }
         body {
             font-family: Arial, sans-serif;
             display: flex;
@@ -13,56 +22,119 @@
             justify-content: center;
             height: 100vh;
             margin: 0;
+            background: var(--bg);
+            color: var(--text);
         }
         #gameBoard {
             display: grid;
-            grid-template-columns: repeat(5, 50px);
-            grid-gap: 5px;
+            grid-template-columns: repeat(5, var(--tile-size));
+            grid-auto-rows: var(--tile-size);
+            gap: var(--gap);
+            user-select: none;
         }
         .tile {
-            width: 50px;
-            height: 50px;
+            width: var(--tile-size);
+            height: var(--tile-size);
             font-size: 24px;
             text-align: center;
-            line-height: 50px;
-            border: 1px solid #ccc;
+            line-height: var(--tile-size);
+            border: 1px solid var(--tile-border, #ccc);
             cursor: pointer;
+            background: var(--tile-bg, white);
+            box-sizing: border-box;
+            display: inline-block;
+            vertical-align: middle;
+            font-weight: 700;
+            text-transform: uppercase;
+            color: var(--tile-text, #111);
         }
         .tile.focused {
-            border: 2px solid rgba(0, 0, 0, 0.979);
+            outline: 2px solid rgba(0,0,0,0.8);
         }
-        #keyboard {
-            margin-top: 20px;
+        .tile.correct { background: var(--correct); color: white; }
+        .tile.present { background: var(--present); color: white; }
+        .tile.absent { background: var(--absent); color: white; }
+
+        /* Flip animation */
+        .tile.flipping { animation: flip 600ms ease forwards; }
+        @keyframes flip {
+            0% { transform: rotateX(0); }
+            50% { transform: rotateX(90deg); background: #fff; }
+            100% { transform: rotateX(0); }
         }
-        .key {
-            width: 30px;
-            height: 30px;
-            margin: 2px;
-            font-size: 18px;
-            text-align: center;
-            line-height: 30px;
-            display: inline-block;
-            border: 1px solid #ccc;
-            cursor: pointer;
+
+        /* Shake for invalid */
+        .shake { animation: shake 600ms; }
+        @keyframes shake {
+            0% { transform: translateX(0); }
+            25% { transform: translateX(-8px); }
+            50% { transform: translateX(8px); }
+            75% { transform: translateX(-6px); }
+            100% { transform: translateX(0); }
         }
-        .key.backspace {
-            width: 60px;
+
+        #controls { margin-top: 12px; display:flex; gap:12px; align-items:center }
+        #keyboard { margin-top: 12px; }
+        .key { min-width: 34px; height: 42px; margin: 4px; padding: 0 6px; font-size: 16px; text-align:center; line-height:42px; display:inline-block; border-radius:6px; border:1px solid var(--key-border,#ccc); cursor:pointer; background:var(--key-bg,#eee); color:var(--key-text,#111); user-select:none; }
+        .key.backspace { min-width: 64px; }
+        .key.correct { background: var(--correct); color: white; }
+        .key.present { background: var(--present); color: white; }
+        .key.absent { background: var(--absent); color: white; }
+
+        #status { margin-bottom: 8px; }
+        #stats { margin-top:10px; font-size:14px; }
+        button { padding:8px 12px; border-radius:6px; border:1px solid #bbb; background:#f4f4f4; cursor:pointer }
+        body.dark {
+            --bg: #0f1720;
+            --text: #e6eef8;
+            --tile-bg: #1e2933;
+            --tile-text: #e6eef8;
+            --tile-border: #334155;
+            --key-bg: #111827;
+            --key-text: #e6eef8;
         }
-        #submitGuess {
-            margin-top: 20px; /* Adjust this value to move the button lower */
-        }
+        /* Settings button & panel */
+        #settingsContainer { position: fixed; top: 12px; right: 12px; z-index: 1200; }
+        #settingsBtn { font-size:18px; padding:6px 8px; border-radius:8px; background:transparent; border:1px solid #ccc; cursor:pointer }
+        #settingsPanel { display:none; position: absolute; right:0; top:40px; background:var(--tile-bg, #fff); color:var(--tile-text,#111); border:1px solid #ccc; border-radius:8px; box-shadow: 0 6px 24px rgba(0,0,0,0.2); min-width:180px; }
+        #settingsPanel button { white-space:nowrap; }
+        #settingsPanel[aria-hidden="false"] { display:block; }
+        .keyboard-row { display:flex; justify-content:center; gap:4px; margin:4px 0 }
+        .keyboard-row.offset { padding-left: 12px }
+        .key { min-width: 30px; height: 36px; margin: 3px; padding: 0 4px; font-size: 14px; line-height:36px }
+        .key.enter { min-width:56px; }
+        .key.backspace { min-width:56px; }
     </style>
 </head>
 <body>
+    <div id="settingsContainer">
+        <button id="settingsBtn" aria-label="Settings">⚙️</button>
+        <div id="settingsPanel" role="dialog" aria-hidden="true">
+            <div style="padding:8px; display:flex; flex-direction:column; gap:8px;">
+                <button id="toggleThemeBtn">Dark Mode</button>
+                <button id="closeSettingsBtn">Close</button>
+            </div>
+        </div>
+    </div>
     <h1>Talkle</h1>
-    <div id="gameBoard"></div>
-    <button id="submitGuess">Submit Guess</button>
-    <div id="keyboard"></div>
+    <div id="status">Guess the word <button id="shareBtn" style="display:none; margin-left:8px">Share</button></div>
+    <div id="gameBoard" role="grid" aria-label="Word guesses grid"></div>
+    <div id="controls">
+        <button id="submitGuess">Submit Guess</button>
+        <button id="resetBtn">Reset</button>
+    </div>
+    <div id="keyboard" role="application" aria-label="On-screen keyboard"></div>
+    <div id="stats"></div>
     <script>
+        const ROWS = 6;
+        const COLS = 5;
         let words = [];
-        let secretWord;
+        let secretWord = '';
         let currentRow = 0;
         let currentCol = 0;
+        let gameOver = false;
+        let feedbackHistory = [];
+        let pendingTimeouts = [];
 
         async function fetchWords() {
             try {
@@ -73,7 +145,7 @@
                 }
                 const text = await response.text();
                 console.log('Words fetched successfully');
-                words = text.split('\n').map(word => word.trim().toLowerCase()).filter(word => word.length === 5);
+                words = text.split(/\r?\n/).map(word => word.trim().toLowerCase()).filter(word => word.length === COLS);
                 startGame();
             } catch (error) {
                 console.error('Error fetching words:', error);
@@ -82,15 +154,26 @@
         }
 
         function startGame() {
+            // choose a random secret word for each new game
             secretWord = words[Math.floor(Math.random() * words.length)];
+            feedbackHistory = [];
+            gameOver = false;
+            currentRow = 0;
+            currentCol = 0;
+
             const gameBoard = document.getElementById('gameBoard');
             const keyboard = document.getElementById('keyboard');
+            gameBoard.innerHTML = '';
+            keyboard.innerHTML = '';
 
-            for (let i = 0; i < 5; i++) {
-                for (let j = 0; j < 5; j++) {
+            for (let i = 0; i < ROWS; i++) {
+                for (let j = 0; j < COLS; j++) {
                     const tile = document.createElement('div');
                     tile.className = 'tile';
                     tile.id = `tile-${i}-${j}`;
+                    tile.setAttribute('role','gridcell');
+                    tile.setAttribute('data-row', i);
+                    tile.setAttribute('data-col', j);
                     tile.addEventListener('click', () => focusTile(i, j));
                     gameBoard.appendChild(tile);
                 }
@@ -102,166 +185,327 @@
                 "zxcvbnm"
             ];
 
-            keyboardLayout.forEach(row => {
+            keyboardLayout.forEach((row, rowIndex) => {
+                const rowEl = document.createElement('div');
+                rowEl.className = 'keyboard-row';
+                if (rowIndex === 1) rowEl.classList.add('offset');
+                // third row gets Enter at start and Backspace at end
+                if (rowIndex === 2) {
+                    const enterKey = document.createElement('div');
+                    enterKey.className = 'key enter';
+                    enterKey.id = 'key-enter';
+                    enterKey.textContent = 'Enter';
+                    enterKey.addEventListener('click', submitGuess);
+                    rowEl.appendChild(enterKey);
+                }
+
                 row.split('').forEach(letter => {
                     const key = document.createElement('div');
                     key.className = 'key';
                     key.id = `key-${letter}`;
+                    key.setAttribute('data-letter', letter);
                     key.textContent = letter;
                     key.addEventListener('click', () => insertLetter(letter));
-                    keyboard.appendChild(key);
+                    rowEl.appendChild(key);
                 });
+
+                if (rowIndex === 2) {
+                    const backspaceKey = document.createElement('div');
+                    backspaceKey.className = 'key backspace';
+                    backspaceKey.id = 'key-backspace';
+                    backspaceKey.textContent = '⌫';
+                    backspaceKey.addEventListener('click', backspace);
+                    rowEl.appendChild(backspaceKey);
+                }
+
+                keyboard.appendChild(rowEl);
             });
 
-            const backspaceKey = document.createElement('div');
-            backspaceKey.className = 'key backspace';
-            backspaceKey.textContent = '⌫';
-            backspaceKey.addEventListener('click', backspace);
-            keyboard.appendChild(backspaceKey);
-
             document.getElementById('submitGuess').addEventListener('click', submitGuess);
-            focusTile(currentRow, currentCol); // Focus the first tile initially
-
-            // Add event listener for keyboard inputs
+            document.getElementById('resetBtn').addEventListener('click', resetGame);
+            document.getElementById('shareBtn').addEventListener('click', shareResult);
+            document.getElementById('toggleThemeBtn').addEventListener('click', () => {
+                const isDark = document.body.classList.contains('dark');
+                applyTheme(!isDark);
+            });
+            // settings open/close
+            const settingsBtn = document.getElementById('settingsBtn');
+            const settingsPanel = document.getElementById('settingsPanel');
+            const closeSettings = document.getElementById('closeSettingsBtn');
+            settingsBtn.addEventListener('click', (e) => {
+                const isHidden = settingsPanel.getAttribute('aria-hidden') === 'true';
+                settingsPanel.setAttribute('aria-hidden', isHidden ? 'false' : 'true');
+            });
+            closeSettings.addEventListener('click', ()=> settingsPanel.setAttribute('aria-hidden', 'true'));
+            // click outside to close
+            document.addEventListener('click', (e)=>{
+                if (!settingsPanel || !settingsBtn) return;
+                if (settingsPanel.getAttribute('aria-hidden') === 'false') {
+                    if (!settingsPanel.contains(e.target) && !settingsBtn.contains(e.target)) {
+                        settingsPanel.setAttribute('aria-hidden','true');
+                    }
+                }
+            });
+            loadTheme();
+            focusTile(currentRow, currentCol);
             document.addEventListener('keydown', handleKeydown);
+            // hide share until game over
+            document.getElementById('shareBtn').style.display = 'none';
+            renderStats();
         }
 
         function handleKeydown(event) {
-            const key = event.key.toLowerCase();
-            if (key === 'enter') {
-                event.preventDefault(); // Prevent the default action
+            if (gameOver) return;
+            const key = event.key;
+            if (key === 'Enter') {
+                event.preventDefault();
                 submitGuess();
-            } else if (key === 'backspace' || key === 'delete') {
+            } else if (key === 'Backspace' || key === 'Delete') {
                 event.preventDefault();
                 backspace();
-            } else if (key >= 'a' && key <= 'z') {
-                event.preventDefault(); // Prevent default behavior for letter keys
-                insertLetter(key);
-            } else {
-                event.preventDefault(); // Prevent default behavior for other keys
-            }
+            } else if (/^[a-zA-Z]$/.test(key)) {
+                event.preventDefault();
+                insertLetter(key.toLowerCase());
+            } // otherwise let browser handle keys
         }
 
         function focusTile(row, col) {
+            // only allow focus on current row
+            if (row !== currentRow) return;
             currentRow = row;
             currentCol = col;
             document.querySelectorAll('.tile').forEach(tile => tile.classList.remove('focused'));
-            document.getElementById(`tile-${row}-${col}`).classList.add('focused');
+            const el = document.getElementById(`tile-${row}-${col}`);
+            if (el) el.classList.add('focused');
         }
 
         function insertLetter(letter) {
-            if (currentCol < 5) {
-                const tile = document.getElementById(`tile-${currentRow}-${currentCol}`);
-                tile.textContent = letter;
-                if (currentCol < 4) {
-                    currentCol++;
-                }
-                focusTile(currentRow, currentCol);
+            if (gameOver) return;
+            if (currentCol >= COLS) return;
+            const tile = document.getElementById(`tile-${currentRow}-${currentCol}`);
+            if (!tile) return;
+            // prevent editing previous rows
+            if (parseInt(tile.getAttribute('data-row')) < currentRow) return;
+            tile.textContent = letter;
+            if (currentCol < COLS - 1) {
+                currentCol++;
+            } else {
+                currentCol = COLS; // mark full
             }
+            focusTile(currentRow, Math.min(currentCol, COLS - 1));
         }
 
         function backspace() {
-            if (currentCol > 0) {
+            if (gameOver) return;
+            if (currentCol > 0 && currentCol <= COLS) {
                 currentCol--;
                 const tile = document.getElementById(`tile-${currentRow}-${currentCol}`);
-                tile.textContent = '';
+                if (tile) tile.textContent = '';
                 focusTile(currentRow, currentCol);
             } else if (currentCol === 0) {
                 const tile = document.getElementById(`tile-${currentRow}-${currentCol}`);
-                tile.textContent = '';
+                if (tile) tile.textContent = '';
             }
         }
 
         function submitGuess() {
-            let guess = '';
-            for (let i = 0; i < 5; i++) {
-                guess += document.getElementById(`tile-${currentRow}-${i}`).textContent;
+            if (gameOver) return;
+            const letters = [];
+            for (let i = 0; i < COLS; i++) {
+                const text = (document.getElementById(`tile-${currentRow}-${i}`).textContent || '').trim();
+                letters.push(text);
             }
+            const guess = letters.join('');
 
-            if (guess.length !== 5) {
-                alert('Enter a 5-letter guess.');
+            // ensure every tile is filled with a single character
+            if (letters.some(l => l.length !== 1)) {
+                const rowEls = [];
+                for (let i=0;i<COLS;i++) rowEls.push(document.getElementById(`tile-${currentRow}-${i}`));
+                rowEls.forEach(el=>el.classList.add('shake'));
+                setTimeout(()=>rowEls.forEach(el=>el.classList.remove('shake')), 600);
+                alert(`Enter a ${COLS}-letter guess.`);
                 return;
             }
 
             if (!words.includes(guess)) {
+                const rowEls = [];
+                for (let i=0;i<COLS;i++) rowEls.push(document.getElementById(`tile-${currentRow}-${i}`));
+                rowEls.forEach(el=>el.classList.add('shake'));
+                setTimeout(()=>rowEls.forEach(el=>el.classList.remove('shake')), 600);
                 alert('The word is not in the dictionary.');
                 return;
             }
 
             const feedback = giveFeedback(secretWord, guess);
-            for (let i = 0; i < 5; i++) {
+            feedbackHistory.push(feedback);
+
+            // apply flip animation and classes sequentially
+            for (let i = 0; i < COLS; i++) {
                 const tile = document.getElementById(`tile-${currentRow}-${i}`);
-                if (feedback[i] === 'G') {
-                    tile.style.backgroundColor = 'green';
-                } else if (feedback[i] === 'Y') {
-                    tile.style.backgroundColor = 'yellow';
-                } else {
-                    tile.style.backgroundColor = 'grey';
-                }
+                tile.classList.add('flipping');
+                const fdb = feedback[i];
+                let t;
+                t = setTimeout(()=>{
+                    tile.classList.remove('flipping');
+                    if (fdb === 'G') tile.classList.add('correct');
+                    else if (fdb === 'Y') tile.classList.add('present');
+                    else tile.classList.add('absent');
+                    pendingTimeouts = pendingTimeouts.filter(id => id !== t);
+                }, 250 + i * 150);
+                pendingTimeouts.push(t);
             }
 
             updateKeyboardColors(guess, feedback);
 
             if (guess === secretWord) {
-                if (confirm("Congratulations! You've guessed the word! Do you want to play again?")) {
-                    resetGame();
-                }
+                gameOver = true;
+                updateStats(true);
+                document.getElementById('shareBtn').style.display = '';
+                const totalFlipMs = 250 + (COLS - 1) * 150 + 150;
+                setTimeout(()=>{
+                    if (confirm("Congratulations! You've guessed the word! Play again?")) resetGame();
+                }, totalFlipMs);
+                return;
+            }
+
+            currentRow++;
+            currentCol = 0;
+            if (currentRow === ROWS) {
+                gameOver = true;
+                updateStats(false);
+                document.getElementById('shareBtn').style.display = '';
+                const totalFlipMs = 250 + (COLS - 1) * 150 + 150;
+                setTimeout(()=>{
+                    if (confirm(`Game Over. The word was: ${secretWord}. Play again?`)) resetGame();
+                }, totalFlipMs);
             } else {
-                currentRow++;
-                currentCol = 0;
-                if (currentRow === 5) {
-                    if (confirm(`Game Over. The word was: ${secretWord}. Do you want to play again?`)) {
-                        resetGame();
-                    }
-                } else {
-                    focusTile(currentRow, currentCol); // Focus the first tile of the next row
-                }
+                focusTile(currentRow, currentCol);
             }
         }
 
+        function setKeyState(letter, state) {
+            // state: 'G'|'Y'|'B' => class correct/present/absent
+            const el = document.getElementById(`key-${letter}`);
+            if (!el) return;
+            const priority = { 'G':3, 'Y':2, 'B':1 };
+            const current = el.getAttribute('data-state') || '';
+            const currentPriority = current ? priority[current] : 0;
+            if (priority[state] <= currentPriority) return; // don't downgrade
+            el.setAttribute('data-state', state);
+            el.classList.remove('correct','present','absent');
+            if (state === 'G') el.classList.add('correct');
+            else if (state === 'Y') el.classList.add('present');
+            else el.classList.add('absent');
+        }
+
         function updateKeyboardColors(guess, feedback) {
-            for (let i = 0; i < 5; i++) {
-                const key = document.getElementById(`key-${guess[i]}`);
-                if (feedback[i] === 'G') {
-                    key.style.backgroundColor = 'green';
-                } else if (feedback[i] === 'Y') {
-                    key.style.backgroundColor = 'yellow';
-                } else {
-                    key.style.backgroundColor = 'grey';
-                }
+            for (let i = 0; i < COLS; i++) {
+                setKeyState(guess[i], feedback[i]);
             }
         }
 
         function giveFeedback(secret, guess) {
-            const feedback = [];
-            for (let i = 0; i < 5; i++) {
+            const feedback = new Array(COLS).fill('B');
+            const secretCounts = {};
+            for (let ch of secret) secretCounts[ch] = (secretCounts[ch] || 0) + 1;
+            // first pass: greens
+            for (let i = 0; i < COLS; i++) {
                 if (guess[i] === secret[i]) {
-                    feedback.push('G');
-                } else if (secret.includes(guess[i])) {
-                    feedback.push('Y');
-                } else {
-                    feedback.push('B');
+                    feedback[i] = 'G';
+                    secretCounts[guess[i]]--;
+                }
+            }
+            // second pass: yellows
+            for (let i = 0; i < COLS; i++) {
+                if (feedback[i] === 'G') continue;
+                const ch = guess[i];
+                if (secretCounts[ch] > 0) {
+                    feedback[i] = 'Y';
+                    secretCounts[ch]--;
                 }
             }
             return feedback;
         }
 
+        function chooseDailyWord() {
+            if (!words || words.length === 0) return '';
+            // simple daily seed: days since arbitrary epoch
+            const epoch = new Date(2022,0,1);
+            const today = new Date();
+            const days = Math.floor((Date.UTC(today.getFullYear(),today.getMonth(),today.getDate()) - Date.UTC(epoch.getFullYear(),epoch.getMonth(),epoch.getDate())) / 86400000);
+            return words[days % words.length];
+        }
+
         function resetGame() {
+            // cancel any pending animation timeouts from previous round
+            pendingTimeouts.forEach(id => clearTimeout(id));
+            pendingTimeouts = [];
+
+            // pick a new random word for each reset
             secretWord = words[Math.floor(Math.random() * words.length)];
+            gameOver = false;
             currentRow = 0;
             currentCol = 0;
-            for (let i = 0; i < 5; i++) {
-                for (let j = 0; j < 5; j++) {
-                    const tile = document.getElementById(`tile-${i}-${j}`);
-                    tile.textContent = '';
-                    tile.style.backgroundColor = 'white';
-                    tile.classList.remove('focused');
-                }
-            }
-            document.querySelectorAll('.key').forEach(key => {
-                key.style.backgroundColor = '';
+            feedbackHistory = [];
+            document.getElementById('gameBoard').querySelectorAll('.tile').forEach(tile => {
+                tile.textContent = '';
+                tile.classList.remove('correct','present','absent','focused','flipping','shake');
+                tile.style.backgroundColor = '';
             });
-            focusTile(currentRow, currentCol); // Focus the first tile initially
+            document.querySelectorAll('.key').forEach(key => {
+                key.setAttribute('data-state','');
+                key.classList.remove('correct','present','absent');
+            });
+            // hide share button until game over
+            const sb = document.getElementById('shareBtn'); if (sb) sb.style.display = 'none';
+            focusTile(currentRow, currentCol);
+            renderStats();
+        }
+
+        // Theme (dark mode)
+        function applyTheme(isDark) {
+            if (isDark) document.body.classList.add('dark');
+            else document.body.classList.remove('dark');
+            try { localStorage.setItem('talkle_theme', isDark ? 'dark' : 'light'); } catch (e) {}
+            const btn = document.getElementById('toggleThemeBtn');
+            if (btn) btn.textContent = isDark ? 'Light Mode' : 'Dark Mode';
+        }
+        function loadTheme() {
+            try {
+                const t = localStorage.getItem('talkle_theme') || 'light';
+                applyTheme(t === 'dark');
+            } catch (e) { applyTheme(false); }
+        }
+
+        // Stats
+        function loadStats() {
+            try { return JSON.parse(localStorage.getItem('talkle_stats')||'{}'); } catch(e){return{}};
+        }
+        function saveStats(s) { localStorage.setItem('talkle_stats', JSON.stringify(s)); }
+        function updateStats(win) {
+            const s = loadStats();
+            s.games = (s.games||0) + 1;
+            if (win) {
+                s.wins = (s.wins||0) + 1;
+                s.streak = (s.streak||0) + 1;
+                s.maxStreak = Math.max(s.maxStreak||0, s.streak);
+            } else {
+                s.streak = 0;
+            }
+            saveStats(s);
+            renderStats();
+        }
+        function renderStats() {
+            const s = loadStats();
+            document.getElementById('stats').textContent = `Games: ${s.games||0}  Wins: ${s.wins||0}  Streak: ${s.streak||0}  Max: ${s.maxStreak||0}`;
+        }
+
+        function shareResult() {
+            if (!feedbackHistory || feedbackHistory.length === 0) { alert('No guesses yet.'); return; }
+            const map = { 'G':'🟩','Y':'🟨','B':'⬛' };
+            let text = 'Talkle\n';
+            text += feedbackHistory.map(row => row.map(cell => map[cell]).join('')).join('\n');
+            navigator.clipboard.writeText(text).then(()=>alert('Result copied to clipboard.'));
         }
 
         fetchWords();
