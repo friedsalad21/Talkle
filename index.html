@@ -1,514 +1,761 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Talkle</title>
-    <style>
-        :root{
-            --tile-size:50px;
-            --gap:6px;
-            --bg:#ffffff;
-            --text:#111;
-            --correct:#6aaa64;
-            --present:#c9b458;
-            --absent:#787c7e;
-        }
-        body {
-            font-family: Arial, sans-serif;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
-            margin: 0;
-            background: var(--bg);
-            color: var(--text);
-        }
-        #gameBoard {
-            display: grid;
-            grid-template-columns: repeat(5, var(--tile-size));
-            grid-auto-rows: var(--tile-size);
-            gap: var(--gap);
-            user-select: none;
-        }
-        .tile {
-            width: var(--tile-size);
-            height: var(--tile-size);
-            font-size: 24px;
-            text-align: center;
-            line-height: var(--tile-size);
-            border: 1px solid var(--tile-border, #ccc);
-            cursor: pointer;
-            background: var(--tile-bg, white);
-            box-sizing: border-box;
-            display: inline-block;
-            vertical-align: middle;
-            font-weight: 700;
-            text-transform: uppercase;
-            color: var(--tile-text, #111);
-        }
-        .tile.focused {
-            outline: 2px solid rgba(0,0,0,0.8);
-        }
-        .tile.correct { background: var(--correct); color: white; }
-        .tile.present { background: var(--present); color: white; }
-        .tile.absent { background: var(--absent); color: white; }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#ffffff">
+<title>Talkle</title>
+<style>
+  :root{
+    --bg:#ffffff;
+    --text:#1a1a1b;
+    --text-dim:#787c7e;
+    --tile-border:#d3d6da;
+    --tile-border-filled:#878a8c;
+    --key-bg:#d3d6da;
+    --key-text:#1a1a1b;
+    --correct:#6aaa64;
+    --present:#c9b458;
+    --absent:#787c7e;
+    --modal-bg:#ffffff;
+    --toast-bg:#1a1a1b;
+    --toast-text:#ffffff;
+    --header-border:#d3d6da;
+  }
+  body.dark{
+    --bg:#121213;
+    --text:#f8f8f8;
+    --text-dim:#818384;
+    --tile-border:#3a3a3c;
+    --tile-border-filled:#565758;
+    --key-bg:#818384;
+    --key-text:#f8f8f8;
+    --absent:#3a3a3c;
+    --modal-bg:#1a1a1b;
+    --toast-bg:#f8f8f8;
+    --toast-text:#121213;
+    --header-border:#3a3a3c;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;
+    background:var(--bg);
+    color:var(--text);
+    display:flex;
+    flex-direction:column;
+    overflow:hidden;
+    transition:background .2s,color .2s;
+  }
+  /* Header */
+  header{
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    padding:0 12px;
+    height:50px;
+    border-bottom:1px solid var(--header-border);
+    flex-shrink:0;
+  }
+  header .side{display:flex;gap:4px;width:96px;}
+  header .side.right{justify-content:flex-end;}
+  h1{
+    font-size:clamp(22px,6vw,30px);
+    font-weight:800;
+    letter-spacing:.1em;
+    text-transform:uppercase;
+    margin:0;
+    text-align:center;
+    flex:1;
+  }
+  .icon-btn{
+    background:none;border:none;cursor:pointer;
+    color:var(--text);padding:6px;border-radius:6px;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .icon-btn:hover{background:rgba(128,128,128,.15);}
+  .icon-btn svg{width:24px;height:24px;fill:currentColor;}
 
-        /* Flip animation */
-        .tile.flipping { animation: flip 600ms ease forwards; }
-        @keyframes flip {
-            0% { transform: rotateX(0); }
-            50% { transform: rotateX(90deg); background: #fff; }
-            100% { transform: rotateX(0); }
-        }
+  /* Layout */
+  main{
+    flex:1;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:space-between;
+    max-width:500px;
+    width:100%;
+    margin:0 auto;
+    padding:8px;
+    overflow:hidden;
+  }
+  #boardWrap{
+    flex:1;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    overflow:hidden;
+    width:100%;
+  }
+  #board{
+    display:grid;
+    grid-template-rows:repeat(6,1fr);
+    gap:5px;
+    height:min(420px,100%);
+    aspect-ratio:5/6;
+  }
+  .row{
+    display:grid;
+    grid-template-columns:repeat(5,1fr);
+    gap:5px;
+  }
+  .tile{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    font-size:clamp(18px,5vh,32px);
+    font-weight:700;
+    text-transform:uppercase;
+    border:2px solid var(--tile-border);
+    color:var(--text);
+    user-select:none;
+    transition:border-color .1s;
+  }
+  .tile.filled{border-color:var(--tile-border-filled);animation:pop .1s ease;}
+  @keyframes pop{0%{transform:scale(.85)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+  .tile.correct,.tile.present,.tile.absent{border:none;color:#fff;}
+  .tile.correct{background:var(--correct);}
+  .tile.present{background:var(--present);}
+  .tile.absent{background:var(--absent);}
+  .tile.flip-in{animation:flipIn .25s ease-in forwards;}
+  .tile.flip-out{animation:flipOut .25s ease-out forwards;}
+  @keyframes flipIn{0%{transform:rotateX(0)}100%{transform:rotateX(-90deg)}}
+  @keyframes flipOut{0%{transform:rotateX(-90deg)}100%{transform:rotateX(0)}}
+  .tile.bounce{animation:bounce .9s ease;}
+  @keyframes bounce{
+    0%,20%{transform:translateY(0)}
+    40%{transform:translateY(-24px)}
+    55%{transform:translateY(4px)}
+    70%{transform:translateY(-10px)}
+    85%{transform:translateY(2px)}
+    100%{transform:translateY(0)}
+  }
+  .row.shake{animation:shake .5s;}
+  @keyframes shake{
+    10%,90%{transform:translateX(-1px)}
+    20%,80%{transform:translateX(2px)}
+    30%,50%,70%{transform:translateX(-4px)}
+    40%,60%{transform:translateX(4px)}
+  }
 
-        /* Shake for invalid */
-        .shake { animation: shake 600ms; }
-        @keyframes shake {
-            0% { transform: translateX(0); }
-            25% { transform: translateX(-8px); }
-            50% { transform: translateX(8px); }
-            75% { transform: translateX(-6px); }
-            100% { transform: translateX(0); }
-        }
+  /* Keyboard */
+  #keyboard{
+    width:100%;
+    padding:0 4px 8px;
+    flex-shrink:0;
+    user-select:none;
+  }
+  .kb-row{display:flex;justify-content:center;gap:5px;margin-bottom:6px;touch-action:manipulation;}
+  .kb-row .spacer{flex:.5;}
+  .key{
+    flex:1;
+    max-width:44px;
+    height:56px;
+    border:none;
+    border-radius:4px;
+    background:var(--key-bg);
+    color:var(--key-text);
+    font-family:inherit;
+    font-size:14px;
+    font-weight:700;
+    text-transform:uppercase;
+    cursor:pointer;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    transition:background .1s;
+    touch-action:manipulation;
+  }
+  .key.wide{flex:1.6;max-width:72px;font-size:12px;}
+  .key svg{width:22px;height:22px;fill:currentColor;pointer-events:none;}
+  .key:active{opacity:.7;}
+  .key.correct{background:var(--correct);color:#fff;}
+  .key.present{background:var(--present);color:#fff;}
+  .key.absent{background:var(--absent);color:#fff;}
 
-        #controls { margin-top: 12px; display:flex; gap:12px; align-items:center }
-        #keyboard { margin-top: 12px; }
-        .key { min-width: 34px; height: 42px; margin: 4px; padding: 0 6px; font-size: 16px; text-align:center; line-height:42px; display:inline-block; border-radius:6px; border:1px solid var(--key-border,#ccc); cursor:pointer; background:var(--key-bg,#eee); color:var(--key-text,#111); user-select:none; }
-        .key.backspace { min-width: 64px; }
-        .key.correct { background: var(--correct); color: white; }
-        .key.present { background: var(--present); color: white; }
-        .key.absent { background: var(--absent); color: white; }
+  /* Toast */
+  #toasts{
+    position:fixed;
+    top:64px;left:50%;
+    transform:translateX(-50%);
+    z-index:2000;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    gap:8px;
+    pointer-events:none;
+  }
+  .toast{
+    background:var(--toast-bg);
+    color:var(--toast-text);
+    padding:12px 16px;
+    border-radius:6px;
+    font-weight:700;
+    font-size:14px;
+    animation:toastIn .15s ease;
+    box-shadow:0 4px 14px rgba(0,0,0,.25);
+    white-space:nowrap;
+  }
+  .toast.fade{opacity:0;transition:opacity .3s;}
+  @keyframes toastIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
 
-        #status { margin-bottom: 8px; }
-        #stats { margin-top:10px; font-size:14px; }
-        button { padding:8px 12px; border-radius:6px; border:1px solid #bbb; background:#f4f4f4; cursor:pointer }
-        body.dark {
-            --bg: #0f1720;
-            --text: #e6eef8;
-            --tile-bg: #1e2933;
-            --tile-text: #e6eef8;
-            --tile-border: #334155;
-            --key-bg: #111827;
-            --key-text: #e6eef8;
-        }
-        /* Settings button & panel */
-        #settingsContainer { position: fixed; top: 12px; right: 12px; z-index: 1200; }
-        #settingsBtn { font-size:18px; padding:6px 8px; border-radius:8px; background:transparent; border:1px solid #ccc; cursor:pointer }
-        #settingsPanel { display:none; position: absolute; right:0; top:40px; background:var(--tile-bg, #fff); color:var(--tile-text,#111); border:1px solid #ccc; border-radius:8px; box-shadow: 0 6px 24px rgba(0,0,0,0.2); min-width:180px; }
-        #settingsPanel button { white-space:nowrap; }
-        #settingsPanel[aria-hidden="false"] { display:block; }
-        .keyboard-row { display:flex; justify-content:center; gap:4px; margin:4px 0 }
-        .keyboard-row.offset { padding-left: 12px }
-        .key { min-width: 30px; height: 36px; margin: 3px; padding: 0 4px; font-size: 14px; line-height:36px }
-        .key.enter { min-width:56px; }
-        .key.backspace { min-width:56px; }
-    </style>
+  /* Modal */
+  .overlay{
+    position:fixed;inset:0;
+    background:rgba(0,0,0,.5);
+    display:none;
+    align-items:center;
+    justify-content:center;
+    z-index:1500;
+    padding:16px;
+  }
+  .overlay.open{display:flex;}
+  .modal{
+    background:var(--modal-bg);
+    color:var(--text);
+    border-radius:10px;
+    max-width:420px;
+    width:100%;
+    max-height:85vh;
+    overflow-y:auto;
+    padding:20px;
+    position:relative;
+    box-shadow:0 8px 32px rgba(0,0,0,.35);
+    animation:modalIn .18s ease;
+  }
+  @keyframes modalIn{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+  .modal h2{margin:0 0 14px;font-size:16px;letter-spacing:.06em;text-transform:uppercase;text-align:center;}
+  .modal .close{
+    position:absolute;top:10px;right:10px;
+  }
+  /* Help modal */
+  .help p{font-size:14px;line-height:1.45;margin:8px 0;color:var(--text);}
+  .example{display:flex;gap:4px;margin:10px 0 4px;}
+  .example .mini{
+    width:34px;height:34px;
+    display:flex;align-items:center;justify-content:center;
+    font-weight:700;font-size:18px;text-transform:uppercase;
+    border:2px solid var(--tile-border-filled);
+  }
+  .example .mini.correct{background:var(--correct);border:none;color:#fff;}
+  .example .mini.present{background:var(--present);border:none;color:#fff;}
+  .example .mini.absent{background:var(--absent);border:none;color:#fff;}
+  .help .cap{font-size:13px;margin:2px 0 12px;color:var(--text-dim);}
+  hr{border:none;border-top:1px solid var(--header-border);margin:14px 0;}
+
+  /* Stats modal */
+  .stat-grid{display:flex;justify-content:center;gap:18px;margin-bottom:16px;text-align:center;}
+  .stat-grid .num{font-size:32px;font-weight:500;line-height:1;}
+  .stat-grid .lbl{font-size:11px;color:var(--text-dim);margin-top:3px;max-width:64px;}
+  #dist{margin:0 8px 16px;}
+  .dist-row{display:flex;align-items:center;gap:6px;margin:4px 0;font-size:13px;}
+  .dist-bar{
+    background:var(--absent);
+    color:#fff;
+    font-weight:700;
+    padding:2px 6px;
+    min-width:16px;
+    text-align:right;
+    border-radius:2px;
+  }
+  .dist-bar.hl{background:var(--correct);}
+  .modal-actions{display:flex;gap:10px;justify-content:center;}
+  .btn{
+    border:none;border-radius:20px;
+    padding:12px 22px;
+    font-size:15px;font-weight:700;
+    cursor:pointer;
+    display:flex;align-items:center;gap:8px;
+    font-family:inherit;
+  }
+  .btn.share{background:var(--correct);color:#fff;}
+  .btn.new{background:var(--key-bg);color:var(--key-text);}
+  .btn svg{width:18px;height:18px;fill:currentColor;}
+
+  /* Settings modal */
+  .setting-row{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:14px 4px;border-bottom:1px solid var(--header-border);
+  }
+  .setting-row:last-of-type{border-bottom:none;}
+  .setting-row .t{font-size:15px;}
+  .setting-row .d{font-size:12px;color:var(--text-dim);margin-top:2px;}
+  .switch{
+    width:44px;height:26px;border-radius:13px;
+    background:var(--key-bg);
+    position:relative;cursor:pointer;border:none;
+    transition:background .2s;flex-shrink:0;
+  }
+  .switch.on{background:var(--correct);}
+  .switch::after{
+    content:'';position:absolute;top:3px;left:3px;
+    width:20px;height:20px;border-radius:50%;
+    background:#fff;transition:left .2s;
+  }
+  .switch.on::after{left:21px;}
+
+  @media (max-height:600px){
+    header{height:42px;}
+    .key{height:46px;}
+  }
+</style>
 </head>
 <body>
-    <div id="settingsContainer">
-        <button id="settingsBtn" aria-label="Settings">⚙️</button>
-        <div id="settingsPanel" role="dialog" aria-hidden="true">
-            <div style="padding:8px; display:flex; flex-direction:column; gap:8px;">
-                <button id="toggleThemeBtn">Dark Mode</button>
-                <button id="closeSettingsBtn">Close</button>
-            </div>
-        </div>
+<header>
+  <div class="side">
+    <button class="icon-btn" id="helpBtn" aria-label="How to play">
+      <svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 17h-2v-2h2v2zm2.07-7.75l-.9.92C13.45 12.9 13 13.5 13 15h-2v-.5c0-1.1.45-2.1 1.17-2.83l1.24-1.26c.37-.36.59-.86.59-1.41 0-1.1-.9-2-2-2s-2 .9-2 2H8c0-2.21 1.79-4 4-4s4 1.79 4 4c0 .88-.36 1.68-.93 2.25z"/></svg>
+    </button>
+  </div>
+  <h1>Talkle</h1>
+  <div class="side right">
+    <button class="icon-btn" id="statsBtn" aria-label="Statistics">
+      <svg viewBox="0 0 24 24"><path d="M16 11V3H8v6H2v12h20V11h-6zm-6-6h4v14h-4V5zm-6 6h4v8H4v-8zm16 8h-4v-6h4v6z"/></svg>
+    </button>
+    <button class="icon-btn" id="settingsBtn" aria-label="Settings">
+      <svg viewBox="0 0 24 24"><path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58a.49.49 0 0 0 .12-.61l-1.92-3.32a.488.488 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.484.484 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.49.49 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/></svg>
+    </button>
+  </div>
+</header>
+
+<main>
+  <div id="boardWrap"><div id="board"></div></div>
+  <div id="keyboard"></div>
+</main>
+
+<div id="toasts"></div>
+
+<!-- Help modal -->
+<div class="overlay" id="helpOverlay">
+  <div class="modal help">
+    <button class="icon-btn close" data-close="helpOverlay" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+    <h2>How to play</h2>
+    <p><strong>Guess the word in 6 tries.</strong></p>
+    <p>Each guess must be a valid 5-letter word. Hit Enter to submit. The color of the tiles changes to show how close your guess was.</p>
+    <hr>
+    <div class="example">
+      <div class="mini correct">w</div><div class="mini">e</div><div class="mini">a</div><div class="mini">r</div><div class="mini">y</div>
     </div>
-    <h1>Talkle</h1>
-    <div id="status">Guess the word <button id="shareBtn" style="display:none; margin-left:8px">Share</button></div>
-    <div id="gameBoard" role="grid" aria-label="Word guesses grid"></div>
-    <div id="controls">
-        <button id="submitGuess">Submit Guess</button>
-        <button id="resetBtn">Reset</button>
+    <p class="cap"><strong>W</strong> is in the word and in the correct spot.</p>
+    <div class="example">
+      <div class="mini">p</div><div class="mini present">i</div><div class="mini">l</div><div class="mini">o</div><div class="mini">t</div>
     </div>
-    <div id="keyboard" role="application" aria-label="On-screen keyboard"></div>
-    <div id="stats"></div>
-    <script>
-        const ROWS = 6;
-        const COLS = 5;
-        let words = [];
-        let secretWord = '';
-        let currentRow = 0;
-        let currentCol = 0;
-        let gameOver = false;
-        let feedbackHistory = [];
-        let pendingTimeouts = [];
+    <p class="cap"><strong>I</strong> is in the word but in the wrong spot.</p>
+    <div class="example">
+      <div class="mini">v</div><div class="mini">a</div><div class="mini">g</div><div class="mini absent">u</div><div class="mini">e</div>
+    </div>
+    <p class="cap"><strong>U</strong> is not in the word in any spot.</p>
+    <hr>
+    <p class="cap">A new random word is chosen every game. Open the stats panel after a game to share your result or play again.</p>
+  </div>
+</div>
 
-        async function fetchWords() {
-            try {
-                console.log('Fetching words...');
-                const response = await fetch('five_letter_words.txt');
-                if (!response.ok) {
-                    throw new Error(`HTTP error! status: ${response.status}`);
-                }
-                const text = await response.text();
-                console.log('Words fetched successfully');
-                words = text.split(/\r?\n/).map(word => word.trim().toLowerCase()).filter(word => word.length === COLS);
-                startGame();
-            } catch (error) {
-                console.error('Error fetching words:', error);
-                alert('Error fetching words: ' + error);
-            }
-        }
+<!-- Stats modal -->
+<div class="overlay" id="statsOverlay">
+  <div class="modal">
+    <button class="icon-btn close" data-close="statsOverlay" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+    <h2>Statistics</h2>
+    <div class="stat-grid">
+      <div><div class="num" id="stPlayed">0</div><div class="lbl">Played</div></div>
+      <div><div class="num" id="stWin">0</div><div class="lbl">Win %</div></div>
+      <div><div class="num" id="stStreak">0</div><div class="lbl">Current Streak</div></div>
+      <div><div class="num" id="stMax">0</div><div class="lbl">Max Streak</div></div>
+    </div>
+    <h2 style="margin-bottom:8px">Guess distribution</h2>
+    <div id="dist"></div>
+    <div class="modal-actions">
+      <button class="btn share" id="shareBtn">Share <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg></button>
+      <button class="btn new" id="newGameBtn">New game</button>
+    </div>
+  </div>
+</div>
 
-        function startGame() {
-            // choose a random secret word for each new game
-            secretWord = words[Math.floor(Math.random() * words.length)];
-            feedbackHistory = [];
-            gameOver = false;
-            currentRow = 0;
-            currentCol = 0;
+<!-- Settings modal -->
+<div class="overlay" id="settingsOverlay">
+  <div class="modal">
+    <button class="icon-btn close" data-close="settingsOverlay" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
+    <h2>Settings</h2>
+    <div class="setting-row">
+      <div><div class="t">Dark theme</div></div>
+      <button class="switch" id="darkSwitch" aria-label="Toggle dark theme"></button>
+    </div>
+    <div class="setting-row">
+      <div><div class="t">Hard mode</div><div class="d">Revealed hints must be used in subsequent guesses</div></div>
+      <button class="switch" id="hardSwitch" aria-label="Toggle hard mode"></button>
+    </div>
+  </div>
+</div>
 
-            const gameBoard = document.getElementById('gameBoard');
-            const keyboard = document.getElementById('keyboard');
-            gameBoard.innerHTML = '';
-            keyboard.innerHTML = '';
+<script>
+(function(){
+'use strict';
 
-            for (let i = 0; i < ROWS; i++) {
-                for (let j = 0; j < COLS; j++) {
-                    const tile = document.createElement('div');
-                    tile.className = 'tile';
-                    tile.id = `tile-${i}-${j}`;
-                    tile.setAttribute('role','gridcell');
-                    tile.setAttribute('data-row', i);
-                    tile.setAttribute('data-col', j);
-                    tile.addEventListener('click', () => focusTile(i, j));
-                    gameBoard.appendChild(tile);
-                }
-            }
+/* ---------- Word lists ---------- */
+// Answer pool: common 5-letter words (any of these can be the secret word)
+const ANSWERS = ("about above abuse actor acute admit adopt adult after again agent agree ahead alarm album alert alike alive allow alone along alter angel anger angle angry apart apple apply arena argue arise armor array arrow aside asset audio audit avoid awake award aware badge badly baker bases basic basis beach beard beast begin being belly below bench berry birth black blade blame blank blast bleed blend bless blind block blood bloom board boast bonus boost booth bound brain brake brand brave bread break breed brick bride brief bring broad broke brown brush build built bunch burnt burst buyer cabin cable candy cargo carry catch cause chain chair chalk champ chaos charm chart chase cheap check cheek cheer chess chest chief child chill china choir chose chunk civil claim clash class clean clear clerk click cliff climb clock close cloth cloud coach coast could count court cover crack craft crane crash crazy cream crime crisp cross crowd crown crude cruel crush curve cycle daily dairy dance dated dealt death debut delay dense depth devil diary dirty donor doubt dozen draft drain drama drank dream dress dried drift drill drink drive drove dying eager early earth eight elbow elder elect elite empty enemy enjoy enter entry equal error essay event every exact exist extra faint fairy faith false fancy fatal fault favor feast fence fever fiber field fifth fifty fight final first flame flash fleet flesh float flock flood floor flour fluid flush focus force forge forth forty forum found frame fraud fresh front frost fruit fully funny genre ghost giant given glass globe glory glove goose grace grade grain grand grant grape grasp grass grave great greed green greet grief grill grind gross group grove growl grown guard guess guest guide habit happy harsh haste hatch haunt heart heavy hedge hello hence hobby honey honor horse hotel house human humor hurry ideal image imply inbox index inner input irony issue ivory jeans jelly jewel joint judge juice knife knock known label labor large laser later laugh layer learn lease least leave legal lemon level light limit linen liver lobby local logic loose lorry loser lower loyal lucky lunch lying magic major maker maple march match maybe mayor meant medal media mercy merge merit metal meter midst might minor minus mixed model money month moral motor mount mouse mouth movie music naive nasty naval nerve never newly night noble noise north notch novel nurse occur ocean offer often olive onion onset opera orbit order organ other ought ounce outer owner oxide paint panel panic paper party pasta patch pause peace pearl pedal penny phase phone photo piano piece pilot pinch pitch pixel pizza place plain plane plant plate plaza point polar porch pound power press price pride prime print prior prize proof proud prove pulse punch pupil purse queen query quest queue quick quiet quilt quite quota quote radar radio rainy raise rally ranch range rapid ratio reach react ready realm rebel refer reign relax reply rider ridge rifle right rigid risky rival river roast robin robot rocky roman rough round route royal rugby ruler rural sadly salad sauce scale scare scene scent scope score scout scrap screw sense serve seven shade shaft shake shall shame shape share sharp sheep sheet shelf shell shift shine shiny shirt shock shoot shore short shout shown sight silly since sixth sixty skill skirt slate sleep slice slide slope small smart smell smile smoke snack snake solar solid solve sorry sound south space spare spark speak speed spell spend spice spike spine split spoke sport spray spread stack staff stage stain stair stake stamp stand stare start state steak steal steam steel steep steer stick stiff still stock stone stood store storm story stove strap straw strip stuck study stuff style sugar suite sunny super surge swear sweat sweep sweet swift swing sword table taken taste teach tempo tenth thank theft their theme there these thick thief thing think third those three threw throw thumb tiger tight timer tired title toast today token tooth topic torch total touch tough tower toxic trace track trade trail train trait treat trend trial tribe trick troop truck truly trunk trust truth tumor tutor twice twist ultra uncle under union unite unity until upper upset urban urged usage usual valid value vapor vault verse video villa virus visit vital vivid vocal voice voter wagon waist watch water weary weigh weird whale wheat wheel where which while white whole whose widen widow width windy witch woman world worry worse worst worth would wound woven wrist write wrong wrote yield young youth").split(" ").filter(w => w.length === 5);
 
-            const keyboardLayout = [
-                "qwertyuiop",
-                "asdfghjkl",
-                "zxcvbnm"
-            ];
+// Extra valid guesses (accepted but never used as the answer)
+const EXTRA = ("aback abbey abide abode abort abyss ached acids acorn acres adapt added adder adept adieu adobe affix agile aging agony aided aisle alias align allot alloy aloft aloha aloof alpha altar amber amble amend amiss among ample amuse anima ankle annex annoy annul antic anvil aorta aphid apron aptly arbor ardor argon aroma arose ascot ashen atlas atoll attic augur aunts auras autos avail avert avian awash awful axiom azure bacon bagel baggy balmy banal banjo barge baron basil baste batch baton bawdy bayou beads beady beams beans bears beats beech beefy befit began begun beige bells belle belts bible bicep biddy bikes biker billy bingo biome birch bison bitty blare blaze bleak bleat blimp bliss blitz blob blobs bloke blond blown bluff blunt blurb blurt blush bogus boils bolts boned bones bongo bonny booby booed books booms boots booty booze borax bored bores borne bossy botch bough boule bowed bowel boxer brace braid brawl brawn bribe brine brink briny brisk broil brood brook broom broth brunt brute buddy budge buggy bugle bulge bulky bully bumpy bunny burly bushy butte buxom bylaw cacao cache cadet cagey cairn camel cameo canal canny canoe canon caper carat cards cared cares caret carol carve caste cater cedar cello chafe chaff chant chard chasm cheat chess chick chide chime chirp chive chock chomp chord chore chuck chump chute cider cigar cinch circa cited civic clack clad clams clang clank clasp claw claws clays cleat cleft climb cling clink cloak clone clout clove clown cluck clump clung coals cobra cocoa colon color comet comfy comic comma conch condo coral corny couch cough coupe covet cower coyly crabs cramp crank crass crate crave crawl credo creed creek creep creme crepe crept crest crick cried crier cries crimp croak crock crone crony crook croon crumb crust crypt cubic cumin curio curly curry curse curvy cushy cutie cynic daddy dandy dared dares darts dazed deals debit decal decay decor decoy deeds deity delta demon denim depot derby deter detox deuce dicey digit dimly diner dingo dingy disco ditch ditto ditty diver dizzy dodge dodgy dogma doing dolly domed dopey doses doted dotes dowdy dowel downy dowry drape drawl drawn dread dregs dribs drier drips droll drone drool droop dross drown drunk dryer duchy dully dummy dumpy dunce dusky dusty dutch duvet dwarf dwell dwelt eagle eased easel eaten eater ebony edict edify eerie egret eject eking elate elegy elfin elide elude elope elude email embed ember emcee endow enema enemy ennui ensue envoy epoch epoxy equip erase erect erode erupt ester ether ethic ethos etude evade evoke exalt exert exile expel exult eying fable facet faded fakes famed fauna feign fella felon femur feral ferry fetal fetch fetid fetus fiend fiery filch filer filet filly filmy filth finch finer fired fishy fjord flack flail flair flake flaky flank flare flask fleck flick flier fling flint flirt flora floss flout flown fluff fluke flume flung flunk flute foamy focal foggy foist folio folly foray forgo forte forty foyer frail frank freak freed freer fried frill frisk fritz frock frond front froth frown froze fruit fudge fugue fumes fungi funky furor furry fussy fuzzy gaffe gaily gamer gamma gamut gassy gaudy gauge gaunt gauze gavel gawky gayer gazer gecko geeky geese genie genus giddy girly girth gizmo gland glare glaze gleam glean glide glint gloat gloom gloss gnash gnome godly golem golly gonad goner goody gooey goofy gorge gouge gourd grail grate gravy graze grime grimy gripe groan groin groom grope grout growl gruel gruff grunt guano guava guile guilt guise gulch gully gumbo gummy guppy gusto gusty gypsy hairy hardy harem hasty hater haven havoc hazel heady heath heave hefty heist helix hertz hilly hinge hippo hippy hoard hoist holly homer honed hooky horde horny hound hovel hover howdy huffy hulky humid humph humus hunch hunky hurly husky hussy hutch hydro hyena hymen hyper icily icing idiom idiot idler idyll igloo iliac imbue impel inane inbox incur inept inert infer ingot inlay inlet inept irate irony islet itchy ivory jaunt jazzy jerky jetty jiffy joker jolly joust juicy jumbo jumpy junta junto juror kappa karma kayak kebab khaki kinky kiosk kitty knack knave knead kneed kneel knelt knoll koala krill label laden ladle lager lance lanky lapel lapse larva lasso latch latte laugh layup leach leafy leaky leant leapt leery lefty leggy lemur leper levee lever libel liege limbo limit limpid lingo lipid lithe liven livid llama loamy loath lodge lofty logic login logon loopy lousy lover lowly lucid lumen lumpy lunar lunge lupus lurch lurid lusty lyric macaw macho macro madam madly mafia magma maize mambo mamma mammy mange mango mangy mania manic manly manor march marry marsh mason masse matey mauve maxim mealy mecca medic melee melon meaty merry metro micro midge miner mimic mince miner minim minty mirth miser missy mocha modal modem mogul moist molar moldy molly momma mommy moody moose mossy motel motif motto moult mound mourn mousy mower mucky mucus muddy mulch mummy munch mural murky mushy musky musty myrrh nadir nanny nasal natal navel needy neigh nicer niche niece ninja ninny ninth nobly noisy nomad noose nosey notch nudge nutty nylon nymph oaken obese occur octal octet odder oddly offal olden older omega onset optic orbit organ otter ought outdo outgo ovary ovate overt ovine ovoid owing oxbow ozone paddy pagan pains palsy panda pansy papal parer parka parry parse party pasty patio patsy patty payee payer peach peaky pecan peppy perch peril perky pesky pesto petal petty phony piety piggy piney pinky piper pique pithy pivot plaid plait plank plied plier pluck plumb plume plump plunk plush poesy pointy poise poker polka polyp pooch poppy posed poser posit posse pouch pounce pouty prank prawn preen prick pried prime primo privy probe prone prong prose prowl proxy prude prune psalm pubic pudgy puffy pulpy pupal puppy puree purer putty pygmy quack quail qualm quark quart quash quasi quell quill quilt quirk quoth rabbi rabid racer radii rafts rainy rajah rally ralph ramen ranch randy raspy raven rayon razor rearm rebar rebus rebut recap recur recut reedy refit regal rehab reins relic remit renal renew repay repel resin retch retro retry reuse revel revue rhino rhyme rigor rinse ripen riper risen riser rivet roach roams robed rocky rodeo roger rogue roomy roost rotor rouge rowdy rower ruddy ruder rugby rumba rumor rupee rusty sadly safer saint salsa salty salve salvo sandy saner sappy sassy satin satyr saucy sauna saute savor savoy savvy scald scalp scaly scamp scant scarf scary schwa scion scoff scold scone scoop scorn scour scowl scram scree screech scrub scrum scuba sedan seedy segue seize semen sepia serif serum setup sever sewer shack shady shale shalt shank shard shave shawl shear sheen sheer sheik shied shill shirk shoal shone shook shorn shove showy shrew shrub shrug shuck shunt shush shyly siege sieve sigma silky sinew singe siren sissy skate skier skiff skimp skulk skull skunk slack slain slang slant slash sleek sleet slept slick slime slimy sling slink sloop slosh sloth slump slung slunk slurp slush slyly smack smash smear smelt smirk smite smith smock smoky smote snail snare snarl sneak sneer snide sniff snipe snoop snore snort snout snowy snub snuck snuff soapy sober soggy sonar sonic sooth sooty sorry sower spade spank spasm spawn speck sperm spicy spiel spilt spiny spire spite splat splay spoil spoof spook spool spoon spore spout sprig spunk spurn spurt squad squat squib stain stale stalk stall stamp stank stash stave stead steed stein stern stilt sting stink stint stoic stoke stole stomp stony stool stoop stout strut stump stung stunk stunt suave sulky sully sumac surer surly swami swamp swash swath swell swept swirl swish swoon swoop sworn swung synod syrup tabby tacit tacky taffy talon tamer tango tangy taper tapir tardy tarot taste tatty taunt tawny teary tease teddy teeth tempo tepee tepid terse testy thang thick thigh thong thorn throb thrum thud thump tiara tibia tidal tilde timid tipsy titan tithe tizzy tonal tonga tonic torso torus totem trawl tread triad tripe trite troll trope trout trove truce truer tryst tuber tubal tulip tulle tumid tunic turbo tutor twang tweak tweed tweet twine twirl udder ulcer umbra uncap uncut undid undue unfed unfit unify unlit unmet unset untie unwed unzip upend urine usher usurp utile utter vague valet valor valve vapid vaunt vegan venom venue verge verve vexed vicar vigil vigor vinyl viola viper viral visor vista vixen vodka vogue vomit vouch vowel vying wacky wafer waive waltz warty waver waxen weave wedge weedy weepy welch welsh wench whack wharf wheeze whelp whiff whine whiny whirl whisk whoop widen wield wight wimpy wince winch wiser wispy witty woken woody wooer wooly woozy wordy wormy wrack wrath wreak wreck wrest wring wrung yacht yearn yeast yodel yokel yucca zebra zesty zonal").split(" ");
 
-            keyboardLayout.forEach((row, rowIndex) => {
-                const rowEl = document.createElement('div');
-                rowEl.className = 'keyboard-row';
-                if (rowIndex === 1) rowEl.classList.add('offset');
-                // third row gets Enter at start and Backspace at end
-                if (rowIndex === 2) {
-                    const enterKey = document.createElement('div');
-                    enterKey.className = 'key enter';
-                    enterKey.id = 'key-enter';
-                    enterKey.textContent = 'Enter';
-                    enterKey.addEventListener('click', submitGuess);
-                    rowEl.appendChild(enterKey);
-                }
+const VALID = new Set(ANSWERS.concat(EXTRA).filter(w => w.length === 5));
 
-                row.split('').forEach(letter => {
-                    const key = document.createElement('div');
-                    key.className = 'key';
-                    key.id = `key-${letter}`;
-                    key.setAttribute('data-letter', letter);
-                    key.textContent = letter;
-                    key.addEventListener('click', () => insertLetter(letter));
-                    rowEl.appendChild(key);
-                });
+/* ---------- State ---------- */
+const ROWS = 6, COLS = 5;
+let secret = '';
+let row = 0, col = 0;
+let gameOver = false;
+let busy = false; // during flip animation
+let guesses = [];       // submitted guess strings
+let feedbacks = [];     // arrays of 'G'|'Y'|'B'
+let hardMode = false;
 
-                if (rowIndex === 2) {
-                    const backspaceKey = document.createElement('div');
-                    backspaceKey.className = 'key backspace';
-                    backspaceKey.id = 'key-backspace';
-                    backspaceKey.textContent = '⌫';
-                    backspaceKey.addEventListener('click', backspace);
-                    rowEl.appendChild(backspaceKey);
-                }
+const WIN_MSGS = ['Genius', 'Magnificent', 'Impressive', 'Splendid', 'Great', 'Phew'];
+const FLIP = 250, STAGGER = 300;
 
-                keyboard.appendChild(rowEl);
-            });
+/* ---------- Storage helpers ---------- */
+function lsGet(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : v; }catch(e){ return d; } }
+function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
 
-            document.getElementById('submitGuess').addEventListener('click', submitGuess);
-            document.getElementById('resetBtn').addEventListener('click', resetGame);
-            document.getElementById('shareBtn').addEventListener('click', shareResult);
-            document.getElementById('toggleThemeBtn').addEventListener('click', () => {
-                const isDark = document.body.classList.contains('dark');
-                applyTheme(!isDark);
-            });
-            // settings open/close
-            const settingsBtn = document.getElementById('settingsBtn');
-            const settingsPanel = document.getElementById('settingsPanel');
-            const closeSettings = document.getElementById('closeSettingsBtn');
-            settingsBtn.addEventListener('click', (e) => {
-                const isHidden = settingsPanel.getAttribute('aria-hidden') === 'true';
-                settingsPanel.setAttribute('aria-hidden', isHidden ? 'false' : 'true');
-            });
-            closeSettings.addEventListener('click', ()=> settingsPanel.setAttribute('aria-hidden', 'true'));
-            // click outside to close
-            document.addEventListener('click', (e)=>{
-                if (!settingsPanel || !settingsBtn) return;
-                if (settingsPanel.getAttribute('aria-hidden') === 'false') {
-                    if (!settingsPanel.contains(e.target) && !settingsBtn.contains(e.target)) {
-                        settingsPanel.setAttribute('aria-hidden','true');
-                    }
-                }
-            });
-            loadTheme();
-            focusTile(currentRow, currentCol);
-            document.addEventListener('keydown', handleKeydown);
-            // hide share until game over
-            document.getElementById('shareBtn').style.display = 'none';
-            renderStats();
-        }
+/* ---------- Build board ---------- */
+const board = document.getElementById('board');
+function buildBoard(){
+  board.innerHTML = '';
+  for(let r = 0; r < ROWS; r++){
+    const rowEl = document.createElement('div');
+    rowEl.className = 'row';
+    rowEl.id = 'row-' + r;
+    for(let c = 0; c < COLS; c++){
+      const t = document.createElement('div');
+      t.className = 'tile';
+      t.id = 'tile-' + r + '-' + c;
+      rowEl.appendChild(t);
+    }
+    board.appendChild(rowEl);
+  }
+}
 
-        function handleKeydown(event) {
-            if (gameOver) return;
-            const key = event.key;
-            if (key === 'Enter') {
-                event.preventDefault();
-                submitGuess();
-            } else if (key === 'Backspace' || key === 'Delete') {
-                event.preventDefault();
-                backspace();
-            } else if (/^[a-zA-Z]$/.test(key)) {
-                event.preventDefault();
-                insertLetter(key.toLowerCase());
-            } // otherwise let browser handle keys
-        }
+/* ---------- Build keyboard ---------- */
+const KB_ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
+function buildKeyboard(){
+  const kb = document.getElementById('keyboard');
+  kb.innerHTML = '';
+  KB_ROWS.forEach((letters, i) => {
+    const rowEl = document.createElement('div');
+    rowEl.className = 'kb-row';
+    if(i === 1){ const s = document.createElement('div'); s.className = 'spacer'; rowEl.appendChild(s); }
+    if(i === 2){
+      const enter = mkKey('enter', 'wide');
+      enter.textContent = 'Enter';
+      enter.addEventListener('click', submitGuess);
+      rowEl.appendChild(enter);
+    }
+    letters.split('').forEach(l => {
+      const k = mkKey(l);
+      k.textContent = l;
+      k.addEventListener('click', () => typeLetter(l));
+      rowEl.appendChild(k);
+    });
+    if(i === 2){
+      const back = mkKey('back', 'wide');
+      back.innerHTML = '<svg viewBox="0 0 24 24"><path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-3 12.59L17.59 17 14 13.41 10.41 17 9 15.59 12.59 12 9 8.41 10.41 7 14 10.59 17.59 7 19 8.41 15.41 12 19 15.59z"/></svg>';
+      back.addEventListener('click', backspace);
+      rowEl.appendChild(back);
+    }
+    if(i === 1){ const s = document.createElement('div'); s.className = 'spacer'; rowEl.appendChild(s); }
+    kb.appendChild(rowEl);
+  });
+}
+function mkKey(id, extra){
+  const b = document.createElement('button');
+  b.className = 'key' + (extra ? ' ' + extra : '');
+  b.id = 'key-' + id;
+  b.type = 'button';
+  return b;
+}
 
-        function focusTile(row, col) {
-            // only allow focus on current row
-            if (row !== currentRow) return;
-            currentRow = row;
-            currentCol = col;
-            document.querySelectorAll('.tile').forEach(tile => tile.classList.remove('focused'));
-            const el = document.getElementById(`tile-${row}-${col}`);
-            if (el) el.classList.add('focused');
-        }
+/* ---------- Toast ---------- */
+function toast(msg, ms){
+  ms = ms || 1200;
+  const box = document.getElementById('toasts');
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  box.prepend(t);
+  setTimeout(() => { t.classList.add('fade'); setTimeout(() => t.remove(), 350); }, ms);
+}
 
-        function insertLetter(letter) {
-            if (gameOver) return;
-            if (currentCol >= COLS) return;
-            const tile = document.getElementById(`tile-${currentRow}-${currentCol}`);
-            if (!tile) return;
-            // prevent editing previous rows
-            if (parseInt(tile.getAttribute('data-row')) < currentRow) return;
-            tile.textContent = letter;
-            if (currentCol < COLS - 1) {
-                currentCol++;
-            } else {
-                currentCol = COLS; // mark full
-            }
-            focusTile(currentRow, Math.min(currentCol, COLS - 1));
-        }
+/* ---------- Input ---------- */
+function typeLetter(l){
+  if(gameOver || busy || col >= COLS) return;
+  const t = document.getElementById('tile-' + row + '-' + col);
+  t.textContent = l;
+  t.classList.add('filled');
+  col++;
+}
+function backspace(){
+  if(gameOver || busy || col === 0) return;
+  col--;
+  const t = document.getElementById('tile-' + row + '-' + col);
+  t.textContent = '';
+  t.classList.remove('filled');
+}
+document.addEventListener('keydown', e => {
+  if(document.querySelector('.overlay.open')){
+    if(e.key === 'Escape') closeAllModals();
+    return;
+  }
+  if(e.key === 'Enter'){ e.preventDefault(); submitGuess(); }
+  else if(e.key === 'Backspace' || e.key === 'Delete'){ e.preventDefault(); backspace(); }
+  else if(/^[a-zA-Z]$/.test(e.key)){ typeLetter(e.key.toLowerCase()); }
+});
 
-        function backspace() {
-            if (gameOver) return;
-            if (currentCol > 0 && currentCol <= COLS) {
-                currentCol--;
-                const tile = document.getElementById(`tile-${currentRow}-${currentCol}`);
-                if (tile) tile.textContent = '';
-                focusTile(currentRow, currentCol);
-            } else if (currentCol === 0) {
-                const tile = document.getElementById(`tile-${currentRow}-${currentCol}`);
-                if (tile) tile.textContent = '';
-            }
-        }
+/* ---------- Feedback ---------- */
+function giveFeedback(secretW, guess){
+  const fb = new Array(COLS).fill('B');
+  const counts = {};
+  for(const ch of secretW) counts[ch] = (counts[ch] || 0) + 1;
+  for(let i = 0; i < COLS; i++){
+    if(guess[i] === secretW[i]){ fb[i] = 'G'; counts[guess[i]]--; }
+  }
+  for(let i = 0; i < COLS; i++){
+    if(fb[i] !== 'G' && counts[guess[i]] > 0){ fb[i] = 'Y'; counts[guess[i]]--; }
+  }
+  return fb;
+}
 
-        function submitGuess() {
-            if (gameOver) return;
-            const letters = [];
-            for (let i = 0; i < COLS; i++) {
-                const text = (document.getElementById(`tile-${currentRow}-${i}`).textContent || '').trim();
-                letters.push(text);
-            }
-            const guess = letters.join('');
+function hardModeViolation(guess){
+  // all revealed greens must stay, all revealed yellows must be reused
+  for(let g = 0; g < guesses.length; g++){
+    const prev = guesses[g], fb = feedbacks[g];
+    for(let i = 0; i < COLS; i++){
+      if(fb[i] === 'G' && guess[i] !== prev[i])
+        return (i + 1) + ordinal(i + 1) + ' letter must be ' + prev[i].toUpperCase();
+      if(fb[i] === 'Y' && guess.indexOf(prev[i]) === -1)
+        return 'Guess must contain ' + prev[i].toUpperCase();
+    }
+  }
+  return null;
+}
+function ordinal(n){ return n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : 'th'; }
 
-            // ensure every tile is filled with a single character
-            if (letters.some(l => l.length !== 1)) {
-                const rowEls = [];
-                for (let i=0;i<COLS;i++) rowEls.push(document.getElementById(`tile-${currentRow}-${i}`));
-                rowEls.forEach(el=>el.classList.add('shake'));
-                setTimeout(()=>rowEls.forEach(el=>el.classList.remove('shake')), 600);
-                alert(`Enter a ${COLS}-letter guess.`);
-                return;
-            }
+/* ---------- Submit ---------- */
+function shakeRow(){
+  const el = document.getElementById('row-' + row);
+  el.classList.add('shake');
+  setTimeout(() => el.classList.remove('shake'), 500);
+}
 
-            if (!words.includes(guess)) {
-                const rowEls = [];
-                for (let i=0;i<COLS;i++) rowEls.push(document.getElementById(`tile-${currentRow}-${i}`));
-                rowEls.forEach(el=>el.classList.add('shake'));
-                setTimeout(()=>rowEls.forEach(el=>el.classList.remove('shake')), 600);
-                alert('The word is not in the dictionary.');
-                return;
-            }
+function submitGuess(){
+  if(gameOver || busy) return;
+  if(col < COLS){ shakeRow(); toast('Not enough letters'); return; }
+  let guess = '';
+  for(let i = 0; i < COLS; i++) guess += document.getElementById('tile-' + row + '-' + i).textContent;
+  guess = guess.toLowerCase();
 
-            const feedback = giveFeedback(secretWord, guess);
-            feedbackHistory.push(feedback);
+  if(!VALID.has(guess)){ shakeRow(); toast('Not in word list'); return; }
+  if(hardMode){
+    const v = hardModeViolation(guess);
+    if(v){ shakeRow(); toast(v); return; }
+  }
 
-            // apply flip animation and classes sequentially
-            for (let i = 0; i < COLS; i++) {
-                const tile = document.getElementById(`tile-${currentRow}-${i}`);
-                tile.classList.add('flipping');
-                const fdb = feedback[i];
-                let t;
-                t = setTimeout(()=>{
-                    tile.classList.remove('flipping');
-                    if (fdb === 'G') tile.classList.add('correct');
-                    else if (fdb === 'Y') tile.classList.add('present');
-                    else tile.classList.add('absent');
-                    pendingTimeouts = pendingTimeouts.filter(id => id !== t);
-                }, 250 + i * 150);
-                pendingTimeouts.push(t);
-            }
+  const fb = giveFeedback(secret, guess);
+  guesses.push(guess);
+  feedbacks.push(fb);
+  busy = true;
 
-            updateKeyboardColors(guess, feedback);
+  const thisRow = row;
+  for(let i = 0; i < COLS; i++){
+    const tile = document.getElementById('tile-' + thisRow + '-' + i);
+    setTimeout(() => {
+      tile.classList.add('flip-in');
+      setTimeout(() => {
+        tile.classList.remove('flip-in', 'filled');
+        tile.classList.add(fb[i] === 'G' ? 'correct' : fb[i] === 'Y' ? 'present' : 'absent', 'flip-out');
+        setKeyState(guess[i], fb[i]);
+        setTimeout(() => tile.classList.remove('flip-out'), FLIP);
+      }, FLIP);
+    }, i * STAGGER);
+  }
 
-            if (guess === secretWord) {
-                gameOver = true;
-                updateStats(true);
-                document.getElementById('shareBtn').style.display = '';
-                const totalFlipMs = 250 + (COLS - 1) * 150 + 150;
-                setTimeout(()=>{
-                    if (confirm("Congratulations! You've guessed the word! Play again?")) resetGame();
-                }, totalFlipMs);
-                return;
-            }
+  const revealDone = (COLS - 1) * STAGGER + FLIP * 2 + 50;
+  setTimeout(() => {
+    busy = false;
+    if(guess === secret){
+      gameOver = true;
+      updateStats(true, thisRow + 1);
+      // bounce the winning row
+      for(let i = 0; i < COLS; i++){
+        const tile = document.getElementById('tile-' + thisRow + '-' + i);
+        setTimeout(() => tile.classList.add('bounce'), i * 90);
+      }
+      toast(WIN_MSGS[thisRow], 2200);
+      setTimeout(openStats, 1900);
+    } else {
+      row++; col = 0;
+      if(row === ROWS){
+        gameOver = true;
+        updateStats(false, 0);
+        toast(secret.toUpperCase(), 3500);
+        setTimeout(openStats, 2200);
+      }
+    }
+  }, revealDone);
+}
 
-            currentRow++;
-            currentCol = 0;
-            if (currentRow === ROWS) {
-                gameOver = true;
-                updateStats(false);
-                document.getElementById('shareBtn').style.display = '';
-                const totalFlipMs = 250 + (COLS - 1) * 150 + 150;
-                setTimeout(()=>{
-                    if (confirm(`Game Over. The word was: ${secretWord}. Play again?`)) resetGame();
-                }, totalFlipMs);
-            } else {
-                focusTile(currentRow, currentCol);
-            }
-        }
+function setKeyState(letter, state){
+  const el = document.getElementById('key-' + letter);
+  if(!el) return;
+  const pri = { G: 3, Y: 2, B: 1 };
+  const cur = el.getAttribute('data-state');
+  if(cur && pri[cur] >= pri[state]) return;
+  el.setAttribute('data-state', state);
+  el.classList.remove('correct', 'present', 'absent');
+  el.classList.add(state === 'G' ? 'correct' : state === 'Y' ? 'present' : 'absent');
+}
 
-        function setKeyState(letter, state) {
-            // state: 'G'|'Y'|'B' => class correct/present/absent
-            const el = document.getElementById(`key-${letter}`);
-            if (!el) return;
-            const priority = { 'G':3, 'Y':2, 'B':1 };
-            const current = el.getAttribute('data-state') || '';
-            const currentPriority = current ? priority[current] : 0;
-            if (priority[state] <= currentPriority) return; // don't downgrade
-            el.setAttribute('data-state', state);
-            el.classList.remove('correct','present','absent');
-            if (state === 'G') el.classList.add('correct');
-            else if (state === 'Y') el.classList.add('present');
-            else el.classList.add('absent');
-        }
+/* ---------- New game ---------- */
+function newGame(){
+  secret = ANSWERS[Math.floor(Math.random() * ANSWERS.length)];
+  row = 0; col = 0; gameOver = false; busy = false;
+  guesses = []; feedbacks = [];
+  buildBoard();
+  document.querySelectorAll('.key').forEach(k => {
+    k.removeAttribute('data-state');
+    k.classList.remove('correct', 'present', 'absent');
+  });
+}
 
-        function updateKeyboardColors(guess, feedback) {
-            for (let i = 0; i < COLS; i++) {
-                setKeyState(guess[i], feedback[i]);
-            }
-        }
+/* ---------- Stats ---------- */
+function loadStats(){
+  try{ return JSON.parse(lsGet('talkle_stats', '{}')) || {}; }catch(e){ return {}; }
+}
+function updateStats(win, guessCount){
+  const s = loadStats();
+  s.games = (s.games || 0) + 1;
+  s.dist = s.dist || [0,0,0,0,0,0];
+  if(win){
+    s.wins = (s.wins || 0) + 1;
+    s.streak = (s.streak || 0) + 1;
+    s.maxStreak = Math.max(s.maxStreak || 0, s.streak);
+    s.dist[guessCount - 1]++;
+    s.last = guessCount;
+  } else {
+    s.streak = 0;
+    s.last = 0;
+  }
+  lsSet('talkle_stats', JSON.stringify(s));
+}
+function renderStats(){
+  const s = loadStats();
+  document.getElementById('stPlayed').textContent = s.games || 0;
+  document.getElementById('stWin').textContent = s.games ? Math.round((s.wins || 0) / s.games * 100) : 0;
+  document.getElementById('stStreak').textContent = s.streak || 0;
+  document.getElementById('stMax').textContent = s.maxStreak || 0;
+  const dist = s.dist || [0,0,0,0,0,0];
+  const max = Math.max.apply(null, dist.concat(1));
+  const box = document.getElementById('dist');
+  box.innerHTML = '';
+  for(let i = 0; i < 6; i++){
+    const r = document.createElement('div');
+    r.className = 'dist-row';
+    const bar = document.createElement('div');
+    bar.className = 'dist-bar' + (gameOver && s.last === i + 1 ? ' hl' : '');
+    bar.style.width = Math.max(8, dist[i] / max * 100) + '%';
+    bar.textContent = dist[i];
+    r.append(document.createTextNode(i + 1), bar);
+    box.appendChild(r);
+  }
+}
 
-        function giveFeedback(secret, guess) {
-            const feedback = new Array(COLS).fill('B');
-            const secretCounts = {};
-            for (let ch of secret) secretCounts[ch] = (secretCounts[ch] || 0) + 1;
-            // first pass: greens
-            for (let i = 0; i < COLS; i++) {
-                if (guess[i] === secret[i]) {
-                    feedback[i] = 'G';
-                    secretCounts[guess[i]]--;
-                }
-            }
-            // second pass: yellows
-            for (let i = 0; i < COLS; i++) {
-                if (feedback[i] === 'G') continue;
-                const ch = guess[i];
-                if (secretCounts[ch] > 0) {
-                    feedback[i] = 'Y';
-                    secretCounts[ch]--;
-                }
-            }
-            return feedback;
-        }
+/* ---------- Share ---------- */
+function shareResult(){
+  if(feedbacks.length === 0){ toast('No guesses yet'); return; }
+  const map = { G: '🟩', Y: '🟨', B: document.body.classList.contains('dark') ? '⬛' : '⬜' };
+  const won = gameOver && guesses[guesses.length - 1] === secret;
+  let text = 'Talkle ' + (won ? guesses.length : 'X') + '/6' + (hardMode ? '*' : '') + '\n\n';
+  text += feedbacks.map(fb => fb.map(c => map[c]).join('')).join('\n');
+  const done = () => toast('Copied to clipboard');
+  if(navigator.share && /Mobi|Android/i.test(navigator.userAgent)){
+    navigator.share({ text: text }).catch(() => copyText(text, done));
+  } else {
+    copyText(text, done);
+  }
+}
+function copyText(text, cb){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(cb).catch(() => fallbackCopy(text, cb));
+  } else fallbackCopy(text, cb);
+}
+function fallbackCopy(text, cb){
+  const ta = document.createElement('textarea');
+  ta.value = text;
+  ta.style.position = 'fixed'; ta.style.opacity = '0';
+  document.body.appendChild(ta);
+  ta.select();
+  try{ document.execCommand('copy'); cb(); }catch(e){ toast('Could not copy'); }
+  ta.remove();
+}
 
-        function chooseDailyWord() {
-            if (!words || words.length === 0) return '';
-            // simple daily seed: days since arbitrary epoch
-            const epoch = new Date(2022,0,1);
-            const today = new Date();
-            const days = Math.floor((Date.UTC(today.getFullYear(),today.getMonth(),today.getDate()) - Date.UTC(epoch.getFullYear(),epoch.getMonth(),epoch.getDate())) / 86400000);
-            return words[days % words.length];
-        }
+/* ---------- Modals ---------- */
+function openModal(id){ document.getElementById(id).classList.add('open'); }
+function closeAllModals(){ document.querySelectorAll('.overlay.open').forEach(o => o.classList.remove('open')); }
+function openStats(){ renderStats(); openModal('statsOverlay'); }
 
-        function resetGame() {
-            // cancel any pending animation timeouts from previous round
-            pendingTimeouts.forEach(id => clearTimeout(id));
-            pendingTimeouts = [];
+document.getElementById('helpBtn').addEventListener('click', () => openModal('helpOverlay'));
+document.getElementById('statsBtn').addEventListener('click', openStats);
+document.getElementById('settingsBtn').addEventListener('click', () => openModal('settingsOverlay'));
+document.querySelectorAll('[data-close]').forEach(b =>
+  b.addEventListener('click', () => document.getElementById(b.getAttribute('data-close')).classList.remove('open'))
+);
+document.querySelectorAll('.overlay').forEach(o =>
+  o.addEventListener('click', e => { if(e.target === o) o.classList.remove('open'); })
+);
+document.getElementById('shareBtn').addEventListener('click', shareResult);
+document.getElementById('newGameBtn').addEventListener('click', () => { closeAllModals(); newGame(); });
 
-            // pick a new random word for each reset
-            secretWord = words[Math.floor(Math.random() * words.length)];
-            gameOver = false;
-            currentRow = 0;
-            currentCol = 0;
-            feedbackHistory = [];
-            document.getElementById('gameBoard').querySelectorAll('.tile').forEach(tile => {
-                tile.textContent = '';
-                tile.classList.remove('correct','present','absent','focused','flipping','shake');
-                tile.style.backgroundColor = '';
-            });
-            document.querySelectorAll('.key').forEach(key => {
-                key.setAttribute('data-state','');
-                key.classList.remove('correct','present','absent');
-            });
-            // hide share button until game over
-            const sb = document.getElementById('shareBtn'); if (sb) sb.style.display = 'none';
-            focusTile(currentRow, currentCol);
-            renderStats();
-        }
+/* ---------- Settings ---------- */
+const darkSwitch = document.getElementById('darkSwitch');
+const hardSwitch = document.getElementById('hardSwitch');
+function applyTheme(dark){
+  document.body.classList.toggle('dark', dark);
+  darkSwitch.classList.toggle('on', dark);
+  const meta = document.querySelector('meta[name="theme-color"]');
+  if(meta) meta.setAttribute('content', dark ? '#121213' : '#ffffff');
+  lsSet('talkle_theme', dark ? 'dark' : 'light');
+}
+darkSwitch.addEventListener('click', () => applyTheme(!document.body.classList.contains('dark')));
+hardSwitch.addEventListener('click', () => {
+  if(guesses.length > 0 && !gameOver && !hardMode){
+    toast('Hard mode can only be enabled at the start');
+    return;
+  }
+  hardMode = !hardMode;
+  hardSwitch.classList.toggle('on', hardMode);
+  lsSet('talkle_hard', hardMode ? '1' : '0');
+});
 
-        // Theme (dark mode)
-        function applyTheme(isDark) {
-            if (isDark) document.body.classList.add('dark');
-            else document.body.classList.remove('dark');
-            try { localStorage.setItem('talkle_theme', isDark ? 'dark' : 'light'); } catch (e) {}
-            const btn = document.getElementById('toggleThemeBtn');
-            if (btn) btn.textContent = isDark ? 'Light Mode' : 'Dark Mode';
-        }
-        function loadTheme() {
-            try {
-                const t = localStorage.getItem('talkle_theme') || 'light';
-                applyTheme(t === 'dark');
-            } catch (e) { applyTheme(false); }
-        }
-
-        // Stats
-        function loadStats() {
-            try { return JSON.parse(localStorage.getItem('talkle_stats')||'{}'); } catch(e){return{}};
-        }
-        function saveStats(s) { localStorage.setItem('talkle_stats', JSON.stringify(s)); }
-        function updateStats(win) {
-            const s = loadStats();
-            s.games = (s.games||0) + 1;
-            if (win) {
-                s.wins = (s.wins||0) + 1;
-                s.streak = (s.streak||0) + 1;
-                s.maxStreak = Math.max(s.maxStreak||0, s.streak);
-            } else {
-                s.streak = 0;
-            }
-            saveStats(s);
-            renderStats();
-        }
-        function renderStats() {
-            const s = loadStats();
-            document.getElementById('stats').textContent = `Games: ${s.games||0}  Wins: ${s.wins||0}  Streak: ${s.streak||0}  Max: ${s.maxStreak||0}`;
-        }
-
-        function shareResult() {
-            if (!feedbackHistory || feedbackHistory.length === 0) { alert('No guesses yet.'); return; }
-            const map = { 'G':'🟩','Y':'🟨','B':'⬛' };
-            let text = 'Talkle\n';
-            text += feedbackHistory.map(row => row.map(cell => map[cell]).join('')).join('\n');
-            navigator.clipboard.writeText(text).then(()=>alert('Result copied to clipboard.'));
-        }
-
-        fetchWords();
-    </script>
+/* ---------- Init ---------- */
+buildKeyboard();
+applyTheme(lsGet('talkle_theme', (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light') === 'dark');
+hardMode = lsGet('talkle_hard', '0') === '1';
+hardSwitch.classList.toggle('on', hardMode);
+newGame();
+if(lsGet('talkle_seen_help', '') !== '1'){
+  openModal('helpOverlay');
+  lsSet('talkle_seen_help', '1');
+}
+})();
+</script>
 </body>
 </html>
