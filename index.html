@@ -30,12 +30,15 @@
     --tile-border-filled:#565758;
     --key-bg:#818384;
     --key-text:#f8f8f8;
+    --correct:#538d4e;
+    --present:#b59f3b;
     --absent:#3a3a3c;
-    --modal-bg:#1a1a1b;
+    --modal-bg:#121213;
     --toast-bg:#f8f8f8;
     --toast-text:#121213;
     --header-border:#3a3a3c;
   }
+  body.contrast{--correct:#f5793a;--present:#85c0f9;}
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
   html,body{height:100%;}
   body{
@@ -115,6 +118,7 @@
     align-items:center;
     justify-content:center;
     font-size:clamp(18px,5vh,32px);
+    line-height:1;
     font-weight:700;
     text-transform:uppercase;
     border:2px solid var(--tile-border);
@@ -122,8 +126,9 @@
     user-select:none;
     transition:border-color .1s;
   }
-  .tile.filled{border-color:var(--tile-border-filled);animation:pop .1s ease;}
-  @keyframes pop{0%{transform:scale(.85)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+  .tile.filled{border-color:var(--tile-border-filled);}
+  .tile.pop{animation:pop .1s ease-in-out;}
+  @keyframes pop{0%{transform:scale(.8);opacity:0}40%{transform:scale(1.1);opacity:1}100%{transform:scale(1)}}
   .tile.correct,.tile.present,.tile.absent{border:none;color:#fff;}
   .tile.correct{background:var(--correct);}
   .tile.present{background:var(--present);}
@@ -156,18 +161,19 @@
     flex-shrink:0;
     user-select:none;
   }
-  .kb-row{display:flex;justify-content:center;gap:5px;margin-bottom:6px;touch-action:manipulation;}
+  .kb-row{display:flex;justify-content:center;gap:6px;margin-bottom:8px;touch-action:manipulation;}
   .kb-row .spacer{flex:.5;}
   .key{
     flex:1;
     max-width:44px;
-    height:56px;
+    height:58px;
+    padding:0;
     border:none;
     border-radius:4px;
     background:var(--key-bg);
     color:var(--key-text);
     font-family:inherit;
-    font-size:14px;
+    font-size:20px;
     font-weight:700;
     text-transform:uppercase;
     cursor:pointer;
@@ -177,7 +183,7 @@
     transition:background .1s;
     touch-action:manipulation;
   }
-  .key.wide{flex:1.6;max-width:72px;font-size:12px;}
+  .key.wide{flex:1.5;max-width:66px;font-size:12px;}
   .key svg{width:22px;height:22px;fill:currentColor;pointer-events:none;}
   .key:active{opacity:.7;}
   .key.correct{background:var(--correct);color:#fff;}
@@ -270,7 +276,12 @@
     border-radius:2px;
   }
   .dist-bar.hl{background:var(--correct);}
-  .modal-actions{display:flex;gap:10px;justify-content:center;}
+  .modal-actions{display:flex;gap:10px;justify-content:center;align-items:center;}
+  .countdown{text-align:center;padding-right:14px;border-right:1px solid var(--header-border);}
+  .countdown .lbl{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;}
+  .countdown .time{font-size:30px;font-variant-numeric:tabular-nums;margin-top:2px;}
+  .countdown[hidden],.btn[hidden]{display:none;}
+  #puzzleLabel{font-size:12px;color:var(--text-dim);text-align:center;margin:-8px 0 14px;}
   .btn{
     border:none;border-radius:20px;
     padding:12px 22px;
@@ -357,7 +368,7 @@
     </div>
     <p class="cap"><strong>U</strong> is not in the word in any spot.</p>
     <hr>
-    <p class="cap">A new random word is chosen every game. Open the stats panel after a game to share your result or play again.</p>
+    <p class="cap">A new puzzle is released daily at midnight. Want more? Turn on Unlimited mode in settings to play as many random words as you like.</p>
   </div>
 </div>
 
@@ -366,6 +377,7 @@
   <div class="modal">
     <button class="icon-btn close" data-close="statsOverlay" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg></button>
     <h2>Statistics</h2>
+    <div id="puzzleLabel"></div>
     <div class="stat-grid">
       <div><div class="num" id="stPlayed">0</div><div class="lbl">Played</div></div>
       <div><div class="num" id="stWin">0</div><div class="lbl">Win %</div></div>
@@ -375,6 +387,7 @@
     <h2 style="margin-bottom:8px">Guess distribution</h2>
     <div id="dist"></div>
     <div class="modal-actions">
+      <div class="countdown" id="countdown" hidden><div class="lbl">Next Talkle</div><div class="time" id="countdownTime">--:--:--</div></div>
       <button class="btn share" id="shareBtn">Share <svg viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92 1.61 0 2.92-1.31 2.92-2.92s-1.31-2.92-2.92-2.92z"/></svg></button>
       <button class="btn new" id="newGameBtn">New game</button>
     </div>
@@ -394,6 +407,14 @@
       <div><div class="t">Hard mode</div><div class="d">Revealed hints must be used in subsequent guesses</div></div>
       <button class="switch" id="hardSwitch" aria-label="Toggle hard mode"></button>
     </div>
+    <div class="setting-row">
+      <div><div class="t">High contrast mode</div><div class="d">Contrast and colorblindness improvements</div></div>
+      <button class="switch" id="contrastSwitch" aria-label="Toggle high contrast mode"></button>
+    </div>
+    <div class="setting-row">
+      <div><div class="t">Unlimited mode</div><div class="d">Play random words instead of the daily puzzle</div></div>
+      <button class="switch" id="unlimitedSwitch" aria-label="Toggle unlimited mode"></button>
+    </div>
   </div>
 </div>
 
@@ -408,17 +429,27 @@ const ANSWERS = ("about above abuse actor acute admit adopt adult after again ag
 // Extra valid guesses (accepted but never used as the answer)
 const EXTRA = ("aback abbey abide abode abort abyss ached acids acorn acres adapt added adder adept adieu adobe affix agile aging agony aided aisle alias align allot alloy aloft aloha aloof alpha altar amber amble amend amiss among ample amuse anima ankle annex annoy annul antic anvil aorta aphid apron aptly arbor ardor argon aroma arose ascot ashen atlas atoll attic augur aunts auras autos avail avert avian awash awful axiom azure bacon bagel baggy balmy banal banjo barge baron basil baste batch baton bawdy bayou beads beady beams beans bears beats beech beefy befit began begun beige bells belle belts bible bicep biddy bikes biker billy bingo biome birch bison bitty blare blaze bleak bleat blimp bliss blitz blob blobs bloke blond blown bluff blunt blurb blurt blush bogus boils bolts boned bones bongo bonny booby booed books booms boots booty booze borax bored bores borne bossy botch bough boule bowed bowel boxer brace braid brawl brawn bribe brine brink briny brisk broil brood brook broom broth brunt brute buddy budge buggy bugle bulge bulky bully bumpy bunny burly bushy butte buxom bylaw cacao cache cadet cagey cairn camel cameo canal canny canoe canon caper carat cards cared cares caret carol carve caste cater cedar cello chafe chaff chant chard chasm cheat chess chick chide chime chirp chive chock chomp chord chore chuck chump chute cider cigar cinch circa cited civic clack clad clams clang clank clasp claw claws clays cleat cleft climb cling clink cloak clone clout clove clown cluck clump clung coals cobra cocoa colon color comet comfy comic comma conch condo coral corny couch cough coupe covet cower coyly crabs cramp crank crass crate crave crawl credo creed creek creep creme crepe crept crest crick cried crier cries crimp croak crock crone crony crook croon crumb crust crypt cubic cumin curio curly curry curse curvy cushy cutie cynic daddy dandy dared dares darts dazed deals debit decal decay decor decoy deeds deity delta demon denim depot derby deter detox deuce dicey digit dimly diner dingo dingy disco ditch ditto ditty diver dizzy dodge dodgy dogma doing dolly domed dopey doses doted dotes dowdy dowel downy dowry drape drawl drawn dread dregs dribs drier drips droll drone drool droop dross drown drunk dryer duchy dully dummy dumpy dunce dusky dusty dutch duvet dwarf dwell dwelt eagle eased easel eaten eater ebony edict edify eerie egret eject eking elate elegy elfin elide elude elope elude email embed ember emcee endow enema enemy ennui ensue envoy epoch epoxy equip erase erect erode erupt ester ether ethic ethos etude evade evoke exalt exert exile expel exult eying fable facet faded fakes famed fauna feign fella felon femur feral ferry fetal fetch fetid fetus fiend fiery filch filer filet filly filmy filth finch finer fired fishy fjord flack flail flair flake flaky flank flare flask fleck flick flier fling flint flirt flora floss flout flown fluff fluke flume flung flunk flute foamy focal foggy foist folio folly foray forgo forte forty foyer frail frank freak freed freer fried frill frisk fritz frock frond front froth frown froze fruit fudge fugue fumes fungi funky furor furry fussy fuzzy gaffe gaily gamer gamma gamut gassy gaudy gauge gaunt gauze gavel gawky gayer gazer gecko geeky geese genie genus giddy girly girth gizmo gland glare glaze gleam glean glide glint gloat gloom gloss gnash gnome godly golem golly gonad goner goody gooey goofy gorge gouge gourd grail grate gravy graze grime grimy gripe groan groin groom grope grout growl gruel gruff grunt guano guava guile guilt guise gulch gully gumbo gummy guppy gusto gusty gypsy hairy hardy harem hasty hater haven havoc hazel heady heath heave hefty heist helix hertz hilly hinge hippo hippy hoard hoist holly homer honed hooky horde horny hound hovel hover howdy huffy hulky humid humph humus hunch hunky hurly husky hussy hutch hydro hyena hymen hyper icily icing idiom idiot idler idyll igloo iliac imbue impel inane inbox incur inept inert infer ingot inlay inlet inept irate irony islet itchy ivory jaunt jazzy jerky jetty jiffy joker jolly joust juicy jumbo jumpy junta junto juror kappa karma kayak kebab khaki kinky kiosk kitty knack knave knead kneed kneel knelt knoll koala krill label laden ladle lager lance lanky lapel lapse larva lasso latch latte laugh layup leach leafy leaky leant leapt leery lefty leggy lemur leper levee lever libel liege limbo limit limpid lingo lipid lithe liven livid llama loamy loath lodge lofty logic login logon loopy lousy lover lowly lucid lumen lumpy lunar lunge lupus lurch lurid lusty lyric macaw macho macro madam madly mafia magma maize mambo mamma mammy mange mango mangy mania manic manly manor march marry marsh mason masse matey mauve maxim mealy mecca medic melee melon meaty merry metro micro midge miner mimic mince miner minim minty mirth miser missy mocha modal modem mogul moist molar moldy molly momma mommy moody moose mossy motel motif motto moult mound mourn mousy mower mucky mucus muddy mulch mummy munch mural murky mushy musky musty myrrh nadir nanny nasal natal navel needy neigh nicer niche niece ninja ninny ninth nobly noisy nomad noose nosey notch nudge nutty nylon nymph oaken obese occur octal octet odder oddly offal olden older omega onset optic orbit organ otter ought outdo outgo ovary ovate overt ovine ovoid owing oxbow ozone paddy pagan pains palsy panda pansy papal parer parka parry parse party pasty patio patsy patty payee payer peach peaky pecan peppy perch peril perky pesky pesto petal petty phony piety piggy piney pinky piper pique pithy pivot plaid plait plank plied plier pluck plumb plume plump plunk plush poesy pointy poise poker polka polyp pooch poppy posed poser posit posse pouch pounce pouty prank prawn preen prick pried prime primo privy probe prone prong prose prowl proxy prude prune psalm pubic pudgy puffy pulpy pupal puppy puree purer putty pygmy quack quail qualm quark quart quash quasi quell quill quilt quirk quoth rabbi rabid racer radii rafts rainy rajah rally ralph ramen ranch randy raspy raven rayon razor rearm rebar rebus rebut recap recur recut reedy refit regal rehab reins relic remit renal renew repay repel resin retch retro retry reuse revel revue rhino rhyme rigor rinse ripen riper risen riser rivet roach roams robed rocky rodeo roger rogue roomy roost rotor rouge rowdy rower ruddy ruder rugby rumba rumor rupee rusty sadly safer saint salsa salty salve salvo sandy saner sappy sassy satin satyr saucy sauna saute savor savoy savvy scald scalp scaly scamp scant scarf scary schwa scion scoff scold scone scoop scorn scour scowl scram scree screech scrub scrum scuba sedan seedy segue seize semen sepia serif serum setup sever sewer shack shady shale shalt shank shard shave shawl shear sheen sheer sheik shied shill shirk shoal shone shook shorn shove showy shrew shrub shrug shuck shunt shush shyly siege sieve sigma silky sinew singe siren sissy skate skier skiff skimp skulk skull skunk slack slain slang slant slash sleek sleet slept slick slime slimy sling slink sloop slosh sloth slump slung slunk slurp slush slyly smack smash smear smelt smirk smite smith smock smoky smote snail snare snarl sneak sneer snide sniff snipe snoop snore snort snout snowy snub snuck snuff soapy sober soggy sonar sonic sooth sooty sorry sower spade spank spasm spawn speck sperm spicy spiel spilt spiny spire spite splat splay spoil spoof spook spool spoon spore spout sprig spunk spurn spurt squad squat squib stain stale stalk stall stamp stank stash stave stead steed stein stern stilt sting stink stint stoic stoke stole stomp stony stool stoop stout strut stump stung stunk stunt suave sulky sully sumac surer surly swami swamp swash swath swell swept swirl swish swoon swoop sworn swung synod syrup tabby tacit tacky taffy talon tamer tango tangy taper tapir tardy tarot taste tatty taunt tawny teary tease teddy teeth tempo tepee tepid terse testy thang thick thigh thong thorn throb thrum thud thump tiara tibia tidal tilde timid tipsy titan tithe tizzy tonal tonga tonic torso torus totem trawl tread triad tripe trite troll trope trout trove truce truer tryst tuber tubal tulip tulle tumid tunic turbo tutor twang tweak tweed tweet twine twirl udder ulcer umbra uncap uncut undid undue unfed unfit unify unlit unmet unset untie unwed unzip upend urine usher usurp utile utter vague valet valor valve vapid vaunt vegan venom venue verge verve vexed vicar vigil vigor vinyl viola viper viral visor vista vixen vodka vogue vomit vouch vowel vying wacky wafer waive waltz warty waver waxen weave wedge weedy weepy welch welsh wench whack wharf wheeze whelp whiff whine whiny whirl whisk whoop widen wield wight wimpy wince winch wiser wispy witty woken woody wooer wooly woozy wordy wormy wrack wrath wreak wreck wrest wring wrung yacht yearn yeast yodel yokel yucca zebra zesty zonal").split(" ");
 
-const VALID = new Set(ANSWERS.concat(EXTRA).filter(w => w.length === 5));
+// Answers never repeat words and are always valid guesses
+const ANSWER_POOL = Array.from(new Set(ANSWERS));
+const VALID = new Set(ANSWER_POOL.concat(EXTRA).filter(w => w.length === 5));
+
+// Load the full dictionary (~16k words) so every real word is accepted, like Wordle
+fetch('five_letter_words.txt')
+  .then(r => r.ok ? r.text() : '')
+  .then(txt => txt.split(/\s+/).forEach(w => { w = w.trim().toLowerCase(); if(/^[a-z]{5}$/.test(w)) VALID.add(w); }))
+  .catch(() => {});
 
 /* ---------- State ---------- */
 const ROWS = 6, COLS = 5;
 let secret = '';
 let row = 0, col = 0;
 let gameOver = false;
-let busy = false; // during flip animation
+let busy = false;       // during reveal animation
 let guesses = [];       // submitted guess strings
 let feedbacks = [];     // arrays of 'G'|'Y'|'B'
 let hardMode = false;
+let unlimited = false;
+let dayIndex = 0;       // daily puzzle number
 
 const WIN_MSGS = ['Genius', 'Magnificent', 'Impressive', 'Splendid', 'Great', 'Phew'];
 const FLIP = 250, STAGGER = 300;
@@ -426,6 +457,25 @@ const FLIP = 250, STAGGER = 300;
 /* ---------- Storage helpers ---------- */
 function lsGet(k, d){ try{ const v = localStorage.getItem(k); return v === null ? d : v; }catch(e){ return d; } }
 function lsSet(k, v){ try{ localStorage.setItem(k, v); }catch(e){} }
+function lsJSON(k){ try{ return JSON.parse(lsGet(k, 'null')); }catch(e){ return null; } }
+
+/* ---------- Daily word ---------- */
+const EPOCH = new Date(2025, 2, 9); // first Talkle commit :)
+function todayIndex(){
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  return Math.round((today - EPOCH) / 86400000);
+}
+// Deterministic shuffle so everyone gets the same word each day without repeats for a long time
+function seededOrder(){
+  let s = 0x7a1c1e;
+  const rand = () => { s |= 0; s = s + 0x6D2B79F5 | 0; let t = Math.imul(s ^ s >>> 15, 1 | s); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  const arr = ANSWER_POOL.slice().sort();
+  for(let i = arr.length - 1; i > 0; i--){ const j = Math.floor(rand() * (i + 1)); [arr[i], arr[j]] = [arr[j], arr[i]]; }
+  return arr;
+}
+const DAILY_ORDER = seededOrder();
+function dailyWord(idx){ return DAILY_ORDER[((idx % DAILY_ORDER.length) + DAILY_ORDER.length) % DAILY_ORDER.length]; }
 
 /* ---------- Build board ---------- */
 const board = document.getElementById('board');
@@ -444,6 +494,7 @@ function buildBoard(){
     board.appendChild(rowEl);
   }
 }
+function tileEl(r, c){ return document.getElementById('tile-' + r + '-' + c); }
 
 /* ---------- Build keyboard ---------- */
 const KB_ROWS = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
@@ -468,6 +519,7 @@ function buildKeyboard(){
     });
     if(i === 2){
       const back = mkKey('back', 'wide');
+      back.setAttribute('aria-label', 'Backspace');
       back.innerHTML = '<svg viewBox="0 0 24 24"><path d="M22 3H7c-.69 0-1.23.35-1.59.88L0 12l5.41 8.11c.36.53.9.89 1.59.89h15c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-3 12.59L17.59 17 14 13.41 10.41 17 9 15.59 12.59 12 9 8.41 10.41 7 14 10.59 17.59 7 19 8.41 15.41 12 19 15.59z"/></svg>';
       back.addEventListener('click', backspace);
       rowEl.appendChild(back);
@@ -481,41 +533,48 @@ function mkKey(id, extra){
   b.className = 'key' + (extra ? ' ' + extra : '');
   b.id = 'key-' + id;
   b.type = 'button';
+  b.tabIndex = -1;
+  // keep focus off on-screen keys so a physical Enter never "clicks" the last key pressed
+  b.addEventListener('mousedown', e => e.preventDefault());
   return b;
 }
 
 /* ---------- Toast ---------- */
 function toast(msg, ms){
-  ms = ms || 1200;
   const box = document.getElementById('toasts');
   const t = document.createElement('div');
   t.className = 'toast';
   t.textContent = msg;
   box.prepend(t);
-  setTimeout(() => { t.classList.add('fade'); setTimeout(() => t.remove(), 350); }, ms);
+  if(ms === Infinity) return t;
+  setTimeout(() => { t.classList.add('fade'); setTimeout(() => t.remove(), 350); }, ms || 1000);
+  return t;
 }
+function clearToasts(){ document.getElementById('toasts').innerHTML = ''; }
 
 /* ---------- Input ---------- */
 function typeLetter(l){
   if(gameOver || busy || col >= COLS) return;
-  const t = document.getElementById('tile-' + row + '-' + col);
+  const t = tileEl(row, col);
   t.textContent = l;
-  t.classList.add('filled');
+  t.classList.add('filled', 'pop');
+  setTimeout(() => t.classList.remove('pop'), 120);
   col++;
 }
 function backspace(){
   if(gameOver || busy || col === 0) return;
   col--;
-  const t = document.getElementById('tile-' + row + '-' + col);
+  const t = tileEl(row, col);
   t.textContent = '';
-  t.classList.remove('filled');
+  t.classList.remove('filled', 'pop');
 }
 document.addEventListener('keydown', e => {
   if(document.querySelector('.overlay.open')){
     if(e.key === 'Escape') closeAllModals();
     return;
   }
-  if(e.key === 'Enter'){ e.preventDefault(); submitGuess(); }
+  if(e.ctrlKey || e.metaKey || e.altKey) return;
+  if(e.key === 'Enter'){ e.preventDefault(); if(!e.repeat) submitGuess(); }
   else if(e.key === 'Backspace' || e.key === 'Delete'){ e.preventDefault(); backspace(); }
   else if(/^[a-zA-Z]$/.test(e.key)){ typeLetter(e.key.toLowerCase()); }
 });
@@ -534,15 +593,21 @@ function giveFeedback(secretW, guess){
   return fb;
 }
 
+// Same rules and wording as Wordle: greens must stay put, every revealed letter must be reused
 function hardModeViolation(guess){
-  // all revealed greens must stay, all revealed yellows must be reused
   for(let g = 0; g < guesses.length; g++){
-    const prev = guesses[g], fb = feedbacks[g];
     for(let i = 0; i < COLS; i++){
-      if(fb[i] === 'G' && guess[i] !== prev[i])
-        return (i + 1) + ordinal(i + 1) + ' letter must be ' + prev[i].toUpperCase();
-      if(fb[i] === 'Y' && guess.indexOf(prev[i]) === -1)
-        return 'Guess must contain ' + prev[i].toUpperCase();
+      if(feedbacks[g][i] === 'G' && guess[i] !== guesses[g][i])
+        return (i + 1) + ordinal(i + 1) + ' letter must be ' + guesses[g][i].toUpperCase();
+    }
+  }
+  for(let g = 0; g < guesses.length; g++){
+    const need = {};
+    for(let i = 0; i < COLS; i++){
+      if(feedbacks[g][i] !== 'B') need[guesses[g][i]] = (need[guesses[g][i]] || 0) + 1;
+    }
+    for(const ch in need){
+      if(guess.split(ch).length - 1 < need[ch]) return 'Guess must contain ' + ch.toUpperCase();
     }
   }
   return null;
@@ -552,15 +617,18 @@ function ordinal(n){ return n === 1 ? 'st' : n === 2 ? 'nd' : n === 3 ? 'rd' : '
 /* ---------- Submit ---------- */
 function shakeRow(){
   const el = document.getElementById('row-' + row);
+  el.classList.remove('shake');
+  void el.offsetWidth;
   el.classList.add('shake');
   setTimeout(() => el.classList.remove('shake'), 500);
 }
+function stateClass(s){ return s === 'G' ? 'correct' : s === 'Y' ? 'present' : 'absent'; }
 
 function submitGuess(){
   if(gameOver || busy) return;
   if(col < COLS){ shakeRow(); toast('Not enough letters'); return; }
   let guess = '';
-  for(let i = 0; i < COLS; i++) guess += document.getElementById('tile-' + row + '-' + i).textContent;
+  for(let i = 0; i < COLS; i++) guess += tileEl(row, i).textContent;
   guess = guess.toLowerCase();
 
   if(!VALID.has(guess)){ shakeRow(); toast('Not in word list'); return; }
@@ -572,43 +640,42 @@ function submitGuess(){
   const fb = giveFeedback(secret, guess);
   guesses.push(guess);
   feedbacks.push(fb);
+  const won = guess === secret;
+  const lost = !won && guesses.length === ROWS;
+  if(won || lost){ gameOver = true; updateStats(won, guesses.length); }
+  saveGame();
   busy = true;
 
   const thisRow = row;
   for(let i = 0; i < COLS; i++){
-    const tile = document.getElementById('tile-' + thisRow + '-' + i);
+    const tile = tileEl(thisRow, i);
     setTimeout(() => {
       tile.classList.add('flip-in');
       setTimeout(() => {
         tile.classList.remove('flip-in', 'filled');
-        tile.classList.add(fb[i] === 'G' ? 'correct' : fb[i] === 'Y' ? 'present' : 'absent', 'flip-out');
-        setKeyState(guess[i], fb[i]);
+        tile.classList.add(stateClass(fb[i]), 'flip-out');
         setTimeout(() => tile.classList.remove('flip-out'), FLIP);
       }, FLIP);
     }, i * STAGGER);
   }
 
-  const revealDone = (COLS - 1) * STAGGER + FLIP * 2 + 50;
+  const revealDone = (COLS - 1) * STAGGER + FLIP * 2;
   setTimeout(() => {
     busy = false;
-    if(guess === secret){
-      gameOver = true;
-      updateStats(true, thisRow + 1);
-      // bounce the winning row
+    // like Wordle, the keyboard only updates once the whole row has been revealed
+    for(let i = 0; i < COLS; i++) setKeyState(guess[i], fb[i]);
+    if(won){
       for(let i = 0; i < COLS; i++){
-        const tile = document.getElementById('tile-' + thisRow + '-' + i);
-        setTimeout(() => tile.classList.add('bounce'), i * 90);
+        const tile = tileEl(thisRow, i);
+        setTimeout(() => tile.classList.add('bounce'), i * 100);
       }
-      toast(WIN_MSGS[thisRow], 2200);
-      setTimeout(openStats, 1900);
+      toast(WIN_MSGS[thisRow], 2000);
+      setTimeout(openStats, 2400);
+    } else if(lost){
+      toast(secret.toUpperCase(), Infinity);
+      setTimeout(openStats, 2400);
     } else {
       row++; col = 0;
-      if(row === ROWS){
-        gameOver = true;
-        updateStats(false, 0);
-        toast(secret.toUpperCase(), 3500);
-        setTimeout(openStats, 2200);
-      }
     }
   }, revealDone);
 }
@@ -621,27 +688,80 @@ function setKeyState(letter, state){
   if(cur && pri[cur] >= pri[state]) return;
   el.setAttribute('data-state', state);
   el.classList.remove('correct', 'present', 'absent');
-  el.classList.add(state === 'G' ? 'correct' : state === 'Y' ? 'present' : 'absent');
+  el.classList.add(stateClass(state));
 }
 
-/* ---------- New game ---------- */
-function newGame(){
-  secret = ANSWERS[Math.floor(Math.random() * ANSWERS.length)];
+/* ---------- Save / restore ---------- */
+function saveKey(){ return unlimited ? 'talkle_game_unlimited' : 'talkle_game_daily'; }
+function saveGame(){
+  lsSet(saveKey(), JSON.stringify({ day: dayIndex, secret: secret, guesses: guesses, hard: hardMode }));
+}
+function resetBoard(){
   row = 0; col = 0; gameOver = false; busy = false;
   guesses = []; feedbacks = [];
+  clearToasts();
   buildBoard();
   document.querySelectorAll('.key').forEach(k => {
     k.removeAttribute('data-state');
     k.classList.remove('correct', 'present', 'absent');
   });
 }
+function restore(saved){
+  saved.guesses.forEach((g, r) => {
+    const fb = giveFeedback(secret, g);
+    guesses.push(g); feedbacks.push(fb);
+    for(let i = 0; i < COLS; i++){
+      const t = tileEl(r, i);
+      t.textContent = g[i];
+      t.classList.add(stateClass(fb[i]));
+      setKeyState(g[i], fb[i]);
+    }
+  });
+  row = guesses.length;
+  gameOver = guesses[guesses.length - 1] === secret || guesses.length === ROWS;
+  if(gameOver) row = guesses.length - 1;
+}
+
+/* ---------- New game ---------- */
+function startGame(){
+  resetBoard();
+  dayIndex = todayIndex();
+  const saved = lsJSON(saveKey());
+  if(unlimited){
+    if(saved && saved.secret && ANSWER_POOL.includes(saved.secret) && saved.guesses && saved.guesses.length < ROWS && saved.guesses[saved.guesses.length - 1] !== saved.secret){
+      secret = saved.secret;
+      restore(saved);
+    } else {
+      secret = ANSWER_POOL[Math.floor(Math.random() * ANSWER_POOL.length)];
+      saveGame();
+    }
+  } else {
+    secret = dailyWord(dayIndex);
+    if(saved && saved.day === dayIndex && saved.guesses){
+      restore(saved);
+      if(gameOver) setTimeout(openStats, 400);
+    }
+  }
+}
+function newUnlimitedGame(){
+  lsSet('talkle_game_unlimited', '');
+  startGame();
+}
 
 /* ---------- Stats ---------- */
+function statsKey(){ return unlimited ? 'talkle_stats_unlimited' : 'talkle_stats'; }
 function loadStats(){
-  try{ return JSON.parse(lsGet('talkle_stats', '{}')) || {}; }catch(e){ return {}; }
+  try{ return JSON.parse(lsGet(statsKey(), '{}')) || {}; }catch(e){ return {}; }
 }
 function updateStats(win, guessCount){
   const s = loadStats();
+  if(!unlimited){
+    // a daily puzzle only counts once, and skipping a day breaks the streak
+    if(s.lastDay === dayIndex) return;
+    if(s.lastWinDay !== undefined && s.lastWinDay !== dayIndex - 1) s.streak = 0;
+    s.lastDay = dayIndex;
+    if(win) s.lastWinDay = dayIndex;
+  }
   s.games = (s.games || 0) + 1;
   s.dist = s.dist || [0,0,0,0,0,0];
   if(win){
@@ -649,43 +769,65 @@ function updateStats(win, guessCount){
     s.streak = (s.streak || 0) + 1;
     s.maxStreak = Math.max(s.maxStreak || 0, s.streak);
     s.dist[guessCount - 1]++;
-    s.last = guessCount;
   } else {
     s.streak = 0;
-    s.last = 0;
   }
-  lsSet('talkle_stats', JSON.stringify(s));
+  lsSet(statsKey(), JSON.stringify(s));
 }
 function renderStats(){
   const s = loadStats();
+  // an old daily streak is no longer "current" if a day was skipped
+  const streak = (!unlimited && s.lastWinDay !== undefined && s.lastWinDay < dayIndex - 1) ? 0 : (s.streak || 0);
+  document.getElementById('puzzleLabel').textContent = unlimited ? 'Unlimited mode' : 'Talkle #' + dayIndex;
   document.getElementById('stPlayed').textContent = s.games || 0;
   document.getElementById('stWin').textContent = s.games ? Math.round((s.wins || 0) / s.games * 100) : 0;
-  document.getElementById('stStreak').textContent = s.streak || 0;
+  document.getElementById('stStreak').textContent = streak;
   document.getElementById('stMax').textContent = s.maxStreak || 0;
   const dist = s.dist || [0,0,0,0,0,0];
   const max = Math.max.apply(null, dist.concat(1));
+  const won = gameOver && guesses[guesses.length - 1] === secret;
   const box = document.getElementById('dist');
   box.innerHTML = '';
   for(let i = 0; i < 6; i++){
     const r = document.createElement('div');
     r.className = 'dist-row';
     const bar = document.createElement('div');
-    bar.className = 'dist-bar' + (gameOver && s.last === i + 1 ? ' hl' : '');
-    bar.style.width = Math.max(8, dist[i] / max * 100) + '%';
+    bar.className = 'dist-bar' + (won && guesses.length === i + 1 ? ' hl' : '');
+    bar.style.width = Math.max(7, dist[i] / max * 100) + '%';
     bar.textContent = dist[i];
     r.append(document.createTextNode(i + 1), bar);
     box.appendChild(r);
   }
+  document.getElementById('countdown').hidden = unlimited || !gameOver;
+  document.getElementById('shareBtn').hidden = !gameOver;
+  document.getElementById('newGameBtn').hidden = !unlimited;
+  updateCountdown();
 }
+function updateCountdown(){
+  const now = new Date();
+  const next = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  let secs = Math.max(0, Math.floor((next - now) / 1000));
+  const pad = n => String(n).padStart(2, '0');
+  document.getElementById('countdownTime').textContent =
+    pad(Math.floor(secs / 3600)) + ':' + pad(Math.floor(secs % 3600 / 60)) + ':' + pad(secs % 60);
+  // roll over to the new daily puzzle at midnight
+  if(!unlimited && todayIndex() !== dayIndex && !busy){ closeAllModals(); startGame(); }
+}
+setInterval(updateCountdown, 1000);
 
 /* ---------- Share ---------- */
 function shareResult(){
-  if(feedbacks.length === 0){ toast('No guesses yet'); return; }
-  const map = { G: '🟩', Y: '🟨', B: document.body.classList.contains('dark') ? '⬛' : '⬜' };
-  const won = gameOver && guesses[guesses.length - 1] === secret;
-  let text = 'Talkle ' + (won ? guesses.length : 'X') + '/6' + (hardMode ? '*' : '') + '\n\n';
+  if(!gameOver){ toast('Finish the puzzle first'); return; }
+  const contrast = document.body.classList.contains('contrast');
+  const map = {
+    G: contrast ? '🟧' : '🟩',
+    Y: contrast ? '🟦' : '🟨',
+    B: document.body.classList.contains('dark') ? '⬛' : '⬜'
+  };
+  const won = guesses[guesses.length - 1] === secret;
+  let text = 'Talkle ' + (unlimited ? '(Unlimited)' : dayIndex.toLocaleString()) + ' ' + (won ? guesses.length : 'X') + '/6' + (hardMode ? '*' : '') + '\n\n';
   text += feedbacks.map(fb => fb.map(c => map[c]).join('')).join('\n');
-  const done = () => toast('Copied to clipboard');
+  const done = () => toast('Copied results to clipboard');
   if(navigator.share && /Mobi|Android/i.test(navigator.userAgent)){
     navigator.share({ text: text }).catch(() => copyText(text, done));
   } else {
@@ -721,12 +863,15 @@ document.querySelectorAll('[data-close]').forEach(b =>
 document.querySelectorAll('.overlay').forEach(o =>
   o.addEventListener('click', e => { if(e.target === o) o.classList.remove('open'); })
 );
+document.querySelectorAll('.icon-btn, .switch, .btn').forEach(b => b.addEventListener('click', () => b.blur()));
 document.getElementById('shareBtn').addEventListener('click', shareResult);
-document.getElementById('newGameBtn').addEventListener('click', () => { closeAllModals(); newGame(); });
+document.getElementById('newGameBtn').addEventListener('click', () => { closeAllModals(); newUnlimitedGame(); });
 
 /* ---------- Settings ---------- */
 const darkSwitch = document.getElementById('darkSwitch');
 const hardSwitch = document.getElementById('hardSwitch');
+const contrastSwitch = document.getElementById('contrastSwitch');
+const unlimitedSwitch = document.getElementById('unlimitedSwitch');
 function applyTheme(dark){
   document.body.classList.toggle('dark', dark);
   darkSwitch.classList.toggle('on', dark);
@@ -734,23 +879,41 @@ function applyTheme(dark){
   if(meta) meta.setAttribute('content', dark ? '#121213' : '#ffffff');
   lsSet('talkle_theme', dark ? 'dark' : 'light');
 }
+function applyContrast(on){
+  document.body.classList.toggle('contrast', on);
+  contrastSwitch.classList.toggle('on', on);
+  lsSet('talkle_contrast', on ? '1' : '0');
+}
 darkSwitch.addEventListener('click', () => applyTheme(!document.body.classList.contains('dark')));
+contrastSwitch.addEventListener('click', () => applyContrast(!document.body.classList.contains('contrast')));
 hardSwitch.addEventListener('click', () => {
   if(guesses.length > 0 && !gameOver && !hardMode){
-    toast('Hard mode can only be enabled at the start');
+    toast('Hard mode can only be enabled at the start of a round', 1500);
     return;
   }
   hardMode = !hardMode;
   hardSwitch.classList.toggle('on', hardMode);
   lsSet('talkle_hard', hardMode ? '1' : '0');
 });
+unlimitedSwitch.addEventListener('click', () => {
+  if(busy) return;
+  unlimited = !unlimited;
+  unlimitedSwitch.classList.toggle('on', unlimited);
+  lsSet('talkle_unlimited', unlimited ? '1' : '0');
+  closeAllModals();
+  startGame();
+  toast(unlimited ? 'Unlimited mode' : 'Daily puzzle #' + dayIndex);
+});
 
 /* ---------- Init ---------- */
 buildKeyboard();
 applyTheme(lsGet('talkle_theme', (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) ? 'dark' : 'light') === 'dark');
+applyContrast(lsGet('talkle_contrast', '0') === '1');
 hardMode = lsGet('talkle_hard', '0') === '1';
 hardSwitch.classList.toggle('on', hardMode);
-newGame();
+unlimited = lsGet('talkle_unlimited', '0') === '1';
+unlimitedSwitch.classList.toggle('on', unlimited);
+startGame();
 if(lsGet('talkle_seen_help', '') !== '1'){
   openModal('helpOverlay');
   lsSet('talkle_seen_help', '1');
